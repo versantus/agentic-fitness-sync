@@ -130,10 +130,11 @@ a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-
 .search input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
 .search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: none; stroke: var(--text-muted); stroke-width: 2; }
 .search kbd { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font: 11px 'Open Sans', sans-serif; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
-.results { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.15); padding: 6px; max-height: 420px; overflow-y: auto; display: none; }
+.results { position: absolute; z-index: 20; top: calc(100% + 6px); right: 0; width: max(100%, min(420px, calc(100vw - 32px))); background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.15); padding: 6px; max-height: 420px; overflow-y: auto; display: none; }
 .results.open { display: block; }
 .results .sect { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); padding: 8px 10px 4px; }
 .results a { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 10px; text-decoration: none; font-size: 14px; }
+.results a span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .results a small { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
 .results a[aria-selected="true"], .results a:hover { background: var(--accent-soft); color: var(--text-primary); }
 .results mark { background: none; color: var(--accent); font-weight: 600; }
@@ -247,6 +248,8 @@ const $ = s => document.querySelector(s);
 const NS = 'http://www.w3.org/2000/svg';
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const fmt = n => n == null ? '–' : n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K' : Math.round(n).toLocaleString();
+/** Weights keep one decimal (137.5 kg), unlike fmt(), which rounds counts and totals. */
+const fmtKg = n => n == null ? '–' : (Math.round(n * 10) / 10).toLocaleString();
 const fmtDate = (d, opts = { day: 'numeric', month: 'short', year: 'numeric' }) => new Date(d + 'T00:00:00').toLocaleDateString(undefined, opts);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent?.appendChild(e); return e; };
@@ -303,7 +306,7 @@ function lineChart(host, pts, unit) {
   el('path', { d: path, fill: 'none', stroke: accent, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
   const last = pts.at(-1), best = pts.reduce((a, b) => b.y > a.y ? b : a);
   for (const p of new Set([best, last])) el('circle', { cx: X(Date.parse(p.date)), cy: Y(p.y), r: 4.5, fill: accent, stroke: surface, 'stroke-width': 2 }, svg);
-  el('text', { x: X(Date.parse(last.date)) + 8, y: Y(last.y) + 4, fill: css('--text-primary'), 'font-size': 12, 'font-weight': 600 }, svg).textContent = `${fmt(last.y)} ${unit}`;
+  el('text', { x: X(Date.parse(last.date)) + 8, y: Y(last.y) + 4, fill: css('--text-primary'), 'font-size': 12, 'font-weight': 600 }, svg).textContent = `${fmtKg(last.y)} ${unit}`;
   // crosshair + nearest-point tooltip
   const cross = el('line', { y1: m.t, y2: H - m.b, stroke: css('--text-muted'), 'stroke-width': 1, visibility: 'hidden' }, svg);
   const dot = el('circle', { r: 5, fill: accent, stroke: surface, 'stroke-width': 2, visibility: 'hidden' }, svg);
@@ -576,8 +579,8 @@ function renderLift() {
   const first = sess[0], last = sess.at(-1), bestInRange = sess.reduce((a, b) => (b.e1rm > (a?.e1rm ?? 0) ? b : a), null);
   const delta = first && last ? last.e1rm - first.e1rm : 0;
   $('#liftStats').innerHTML = [
-    `<span><b>${fmt(e.bestE1rm)} kg</b>all-time best e1RM</span>`,
-    `<span><b>${fmt(e.bestWeight)} kg</b>heaviest set</span>`,
+    `<span><b>${fmtKg(e.bestE1rm)} kg</b>all-time best e1RM</span>`,
+    `<span><b>${fmtKg(e.bestWeight)} kg</b>heaviest set</span>`,
     bestInRange ? `<span><b>${bestInRange.e1rm} kg</b>best in range</span>` : '',
     sess.length > 1 ? `<span><b class="${delta >= 0 ? 'up' : ''}">${delta >= 0 ? '▲ +' : '▼ '}${delta.toFixed(1)} kg</b>change in range</span>` : '',
     `<span><b>${sess.length}</b>sessions</span>`,
@@ -683,7 +686,7 @@ function renderExercise(id) {
       <span class="meta">${e.sessions.length} sessions · ${fmtDate(e.firstDate)} – ${fmtDate(e.lastDate)}</span></div>` +
     tileHtml([
       ['Best e1RM', e.bestE1rm ? `${e.bestE1rm} kg` : '–', bestE ? `${esc(bestE.bestSet)} · ${fmtDate(bestE.date)}` : 'No weighted sets'],
-      ['Heaviest set', e.bestWeight ? `${fmt(e.bestWeight)} kg` : '–', 'All time'],
+      ['Heaviest set', e.bestWeight ? `${fmtKg(e.bestWeight)} kg` : '–', 'All time'],
       ['e1RM in range', bestIn ? `${bestIn.e1rm} kg` : '–', delta == null ? 'Not enough sessions' : `<span class="${delta >= 0 ? 'up' : ''}">${delta >= 0 ? '▲ +' : '▼ '}${delta.toFixed(1)} kg</span> first → last`],
       ['Sessions in range', fmt(sess.length), `${fmt(sess.reduce((a, x) => a + x.sets, 0))} sets`],
       ['Volume in range', `${fmt(sess.reduce((a, x) => a + x.volume, 0))} kg`, `${fmt(e.totalVolume)} kg all time`],

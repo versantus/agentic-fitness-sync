@@ -6,6 +6,10 @@ local strength dashboard. The dashboard shows estimated 1RM trends, rep maxes, P
 muscle group, a front/back body map and your consistency, with search and a page for every
 exercise and muscle.
 
+![Strength dashboard overview: summary tiles, estimated 1RM chart and recent personal records](docs/screenshots/overview.png)
+
+<sub>Screenshots use generated demo data (see [Try it without an account](#try-it-without-an-account)), not a real person's training.</sub>
+
 > **Unofficial.** Not affiliated with or endorsed by ABC Trainerize or ABC Fitness. It uses the
 > same private API the Trainerize web app uses, signed in as you, and reads only your own
 > account. That API is undocumented and may change or break at any time. Automated access may
@@ -35,6 +39,34 @@ trainerize serve
 - **Without `npm link`:** use `node skills/trainerize-strength/bin/cli.js` wherever this guide says `trainerize`.
 - **Web address:** the one you use to log in on the web, e.g. `https://yourcoach.trainerize.com`.
 - **Social login:** if you sign in with Google, Apple or Facebook, set a password in the Trainerize app first.
+
+## What you get
+
+**Where you've trained.** A front and back body map, shaded by sets in the selected period. Front,
+side and rear delts and upper vs mid chest are drawn separately when Trainerize tags them that way.
+Click any muscle to open its page.
+
+![Body map showing sets per muscle group, front and back, with a ranked table](docs/screenshots/body-map.png)
+
+**Search everything.** Press `/` and type part of an exercise, muscle or piece of equipment.
+
+![Search dropdown matching the "upper back" muscle group and several exercises](docs/screenshots/search.png)
+
+**A page for every exercise.** It has your e1RM trend, a rep-max table (your heaviest 1, 3, 5, 8 and 10 reps), PR history,
+volume per session and every session you've logged.
+
+![Deadlift page with best e1RM, rep maxes and PR history](docs/screenshots/exercise.png)
+
+**A page for every muscle group.** It shows weekly sets, where they land on the body, the exercises you use and your recent PRs.
+
+![Shoulders page with weekly sets, body map highlighting the delts, and exercises](docs/screenshots/muscle.png)
+
+<details>
+<summary><b>Dark mode</b></summary>
+
+![The dashboard in dark mode](docs/screenshots/dark.png)
+
+</details>
 
 ## Use it with an AI agent
 
@@ -151,6 +183,17 @@ Found a vulnerability? Please open a private security advisory on GitHub rather 
   aren't on the map are still listed in the table beside it.
 - **Streak:** consecutive Monday-start weeks with at least one tracked strength workout.
 - **Adherence:** tracked workouts vs scheduled workouts left unticked, over the last 12 weeks.
+
+## Try it without an account
+
+Generate 18 months of realistic demo training into a separate folder and open the dashboard on it:
+
+```sh
+TRAINERIZE_HOME=/tmp/tz-demo node scripts/demo-data.mjs
+TRAINERIZE_HOME=/tmp/tz-demo trainerize serve
+```
+
+The data is deterministic. This is how the screenshots above were made.
 
 ## Development
 
