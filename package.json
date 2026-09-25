@@ -17,6 +17,7 @@
     "skills/trainerize-strength/dashboard",
     ".env.example",
     "README.md",
+    "AGENTS.md",
     "LICENSE"
   ],
   "engines": {
