@@ -46,6 +46,9 @@ Run `tz status`.
 Fields:
 - `exercises[].recent[]`: per-session `e1rm` (kg), `bestSet`, `volume` and `sets`.
 - `bestE1rmKg` and `bestWeightKg`: all-time bests.
+- `exercises[].repMaxes[]`: the heaviest weight lifted for at least N reps (N = 1, 2, 3, 5, 8, 10, 12, 15),
+  with `actualReps` and `date`. Use it for "what's my 5RM / 1RM" questions. If `actualReps` is above the
+  target (a 5RM taken from a set of 8), say the true max is probably higher and give the e1RM-based estimate.
 - `recentPRs[]`: new e1RM or weight bests.
 - `weekly[].muscles`: sets and tonnage per main muscle.
 - `consistency`: week streaks, and 12-week adherence (tracked vs missed scheduled workouts).
@@ -62,6 +65,8 @@ For set-level questions, `tz export --format json` returns one row per logged se
 - Muscle groups come from Trainerize's "main muscle" tag, so a compound lift counts toward one
   muscle only. Mention this if the user asks about volume balance.
 - If the user wants to *see* their data, run `tz serve --no-open` in the background and give them
-  the URL (default http://127.0.0.1:4477). The dashboard has a front/back body map of where they've trained.
+  the URL (default http://127.0.0.1:4477). The dashboard has a front/back body map and a search box. You can
+  link straight to a page: `http://127.0.0.1:4477/#/exercise/<id>` (the `id` from `stats`) or
+  `http://127.0.0.1:4477/#/muscle/<group>` (e.g. `chest`, `shoulders`, `upperBack`, `hamstrings`).
 - It's their training data, so don't judge it unprompted. If they ask for programming advice, base it
   on the numbers and suggest checking changes with their coach.

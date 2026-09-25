@@ -119,6 +119,36 @@ th { color: var(--text-secondary); font-weight: 600; }
 .rank table td:first-child i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
 .rank tr { cursor: default; }
 .rank tr:hover td { background: var(--accent-soft); }
+.muscle { cursor: pointer; }
+tr.hl td, .rank tr:hover td { background: var(--accent-soft); }
+a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+a:hover { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.rank td a { text-decoration: none; }
+.search { position: relative; flex: 1 1 260px; max-width: 420px; }
+.search input { width: 100%; font: inherit; font-size: 14px; color: var(--text-primary); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px 8px 36px; }
+.search input:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; fill: none; stroke: var(--text-muted); stroke-width: 2; }
+.search kbd { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font: 11px 'Open Sans', sans-serif; color: var(--text-muted); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
+.results { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.15); padding: 6px; max-height: 420px; overflow-y: auto; display: none; }
+.results.open { display: block; }
+.results .sect { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); padding: 8px 10px 4px; }
+.results a { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border-radius: 10px; text-decoration: none; font-size: 14px; }
+.results a small { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.results a[aria-selected="true"], .results a:hover { background: var(--accent-soft); color: var(--text-primary); }
+.results mark { background: none; color: var(--accent); font-weight: 600; }
+.results .none { padding: 12px 10px; color: var(--text-muted); font-size: 14px; }
+.crumbs { font-size: 14px; margin: 0 0 8px; }
+.crumbs a { text-decoration: none; color: var(--text-secondary); }
+.crumbs a:hover { color: var(--accent); }
+.page-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; margin: 0 0 16px; }
+.page-title h2 { font-size: 26px; margin: 0; font-weight: 700; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--text-primary); text-decoration: none; }
+a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
+.card-link { font-size: 13px; font-weight: 600; text-decoration: none; color: var(--accent); white-space: nowrap; }
+.bodymap.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rm-note { color: var(--text-muted); font-size: 12px; margin-top: 6px; }
+[hidden] { display: none !important; }
 .err { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: none; }
 </style>
 </head>
@@ -128,6 +158,13 @@ th { color: var(--text-secondary); font-weight: 600; }
     <h1>Strength <span>dashboard</span></h1>
     <div class="meta" id="meta">Loading…</div>
     <div class="spacer"></div>
+    <div class="search" role="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search exercises or muscles…" autocomplete="off" spellcheck="false"
+        role="combobox" aria-expanded="false" aria-controls="results" aria-autocomplete="list" aria-label="Search exercises or muscles">
+      <kbd>/</kbd>
+      <div class="results" id="results" role="listbox"></div>
+    </div>
     <button id="theme" title="Toggle light/dark">◐ Theme</button>
     <button id="sync" class="primary">Sync now</button>
   </header>
@@ -141,6 +178,8 @@ th { color: var(--text-secondary); font-weight: 600; }
     <button data-range="0">All time</button>
   </div>
 
+  <main id="detail" hidden></main>
+  <main id="overview">
   <section class="tiles" id="tiles"></section>
 
   <div class="grid2">
@@ -150,7 +189,7 @@ th { color: var(--text-secondary); font-weight: 600; }
           <h2 id="liftTitle">Lift progression</h2>
           <p class="hint">Best estimated 1-rep max per session (Epley, sets of 10 reps or fewer).</p>
         </div>
-        <select id="liftSelect" aria-label="Exercise"></select>
+        <div style="display:flex;gap:10px;align-items:center"><select id="liftSelect" aria-label="Exercise"></select><a class="card-link" id="liftLink" href="#">Details →</a></div>
       </div>
       <div class="chips" id="liftChips"></div>
       <div class="stats-row" id="liftStats"></div>
@@ -182,7 +221,7 @@ th { color: var(--text-secondary); font-weight: 600; }
 
   <section class="card">
     <h2>Where you've trained</h2>
-    <p class="hint">Sets per muscle group in the selected range, by each exercise's main muscle. Darker = more sets.</p>
+    <p class="hint">Sets per muscle in the selected range, by each exercise's main muscle. Darker = more sets. Click a muscle for details.</p>
     <div class="bodymap">
       <div class="figure"><div id="bodyFront"></div><div class="cap">Front</div></div>
       <div class="figure"><div id="bodyBack"></div><div class="cap">Back</div></div>
@@ -199,6 +238,7 @@ th { color: var(--text-secondary); font-weight: 600; }
     <h3 style="font-size:15px;margin:16px 0 0;font-weight:600">Coming up</h3>
     <ul class="upcoming" id="upcoming"></ul>
   </section>
+  </main>
 </div>
 <div class="tip" id="tip" role="status"></div>
 
@@ -280,7 +320,7 @@ function lineChart(host, pts, unit) {
 }
 
 // ---- stacked columns -------------------------------------------------
-function stackedColumns(host, rows, keys, colors, unit) {
+function stackedColumns(host, rows, keys, colors, unit, { title = r => `Week of ${fmtDate(r.week)}`, tick = r => fmtDate(r.week, { day: 'numeric', month: 'short' }) } = {}) {
   host.innerHTML = '';
   if (!rows.length) { host.innerHTML = '<div class="empty">No workouts in this range.</div>'; return; }
   const W = host.clientWidth, H = 260, m = { t: 12, r: 8, b: 28, l: 44 };
@@ -297,7 +337,7 @@ function stackedColumns(host, rows, keys, colors, unit) {
   const labelEvery = Math.ceil(rows.length / Math.floor((W - m.l) / 70));
   rows.forEach((r, i) => {
     const cx = m.l + band * i + band / 2;
-    if (i % labelEvery === 0) el('text', { x: cx, y: H - 8, 'text-anchor': 'middle' }, ax).textContent = fmtDate(r.week, { day: 'numeric', month: 'short' });
+    if (i % labelEvery === 0) el('text', { x: cx, y: H - 8, 'text-anchor': 'middle' }, ax).textContent = tick(r);
     let acc = 0; const segs = keys.filter(k => r.v[k] > 0);
     segs.forEach((k, j) => {
       const y0 = Y(acc), y1 = Y(acc + r.v[k]); acc += r.v[k];
@@ -309,7 +349,7 @@ function stackedColumns(host, rows, keys, colors, unit) {
     const hit = el('rect', { x: m.l + band * i, y: m.t, width: band, height: H - m.t - m.b, fill: 'transparent' }, svg);
     hit.addEventListener('pointermove', e => {
       const lines = keys.filter(k => r.v[k]).reverse().map(k => `<div class="row"><span><i style="background:${colors[k]}"></i>${esc(labelOf(k))}</span><span>${fmt(r.v[k])}</span></div>`).join('');
-      showTip(`<b>Week of ${fmtDate(r.week)}</b>${lines}<div class="row"><span>Total</span><span>${fmt(totals[i])} ${unit}</span></div>`, e.clientX, e.clientY);
+      showTip(`<b>${esc(title(r))}</b>${lines}<div class="row"><span>Total</span><span>${fmt(totals[i])} ${unit}</span></div>`, e.clientX, e.clientY);
     });
     hit.addEventListener('pointerleave', hideTip);
   });
@@ -345,107 +385,156 @@ function heatmap(host, days) {
 
 // ---- body map --------------------------------------------------------
 // Trainerize "mainMuscle" tags are camelCase and often sub-muscles (shoulderFront, chestUpper,
-// middleBack, bicep…). Split camelCase, then match each map region by prefix.
-const MUSCLE_RULES = [
-  ['chest', /^(chest|pec)/], ['shoulders', /^(shoulder|delt)/], ['biceps', /^bicep/], ['triceps', /^tricep/],
+// middleBack, bicep…). Each tag maps to one or more drawn regions; each region belongs to a group
+// (chest, shoulders, …) used for the volume chart, the table and the muscle pages.
+const humanize = tag => String(tag).replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().trim();
+const GROUP_RULES = [
+  ['chest', /^(chest|pec|incline)/], ['shoulders', /^(shoulder|delt)/], ['biceps', /^bicep/], ['triceps', /^tricep/],
   ['forearms', /^(forearm|wrist|grip)/], ['obliques', /^oblique/], ['abs', /^(abs|abdominal|core|rectus)/],
   ['quads', /^(quad|hip flexor)/], ['adductors', /^(adductor|inner thigh|groin)/], ['hamstrings', /^hamstring/],
   ['glutes', /^(glute|abductor|hip)/], ['calves', /^(calf|calves|shin|tibialis|soleus)/],
   ['lats', /^lat/], ['traps', /^(trap|neck)/], ['lowerBack', /^(lower back|erector|spinal)/],
   ['upperBack', /^(middle back|mid back|upper back|rhomboid|back)/],
 ];
-const MUSCLE_ALIASES = Object.fromEntries(MUSCLE_RULES); // region list (keys) for "not trained" text
-const REGION_LABEL = { upperBack: 'upper back', lowerBack: 'lower back' };
-const humanize = tag => String(tag).replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().trim();
-const regionOf = tag => { const t = humanize(tag); return MUSCLE_RULES.find(([, re]) => re.test(t))?.[0] ?? null; };
-/** Display group for a tag: its map region if it has one, otherwise the readable tag. */
-const groupOf = tag => regionOf(tag) ?? humanize(tag);
-const labelOf = key => REGION_LABEL[key] ?? key;
+// Finer regions inside a group, where Trainerize tags distinguish them.
+const SUB_RULES = [
+  ['upperChest', /^(chest upper|upper chest|incline)/], ['lowerChest', /^chest (mid|middle|inner|lower)/],
+  ['frontDelts', /^(shoulder front|front delt|anterior delt)/], ['sideDelts', /^(shoulder (side|lateral|middle)|side delt|lateral delt)/],
+  ['rearDelts', /^(shoulder rear|rear delt|posterior delt)/],
+];
+const GROUP_REGIONS = { chest: ['upperChest', 'lowerChest'], shoulders: ['frontDelts', 'sideDelts', 'rearDelts'] };
+const PARENT = { upperChest: 'chest', lowerChest: 'chest', frontDelts: 'shoulders', sideDelts: 'shoulders', rearDelts: 'shoulders' };
+const LABEL = { upperBack: 'upper back', lowerBack: 'lower back', upperChest: 'upper chest', lowerChest: 'mid/lower chest', frontDelts: 'front delts', sideDelts: 'side delts', rearDelts: 'rear delts' };
+const GROUPS = GROUP_RULES.map(([g]) => g);
 
-// Simple, symmetric figure on a 200×420 grid. [region, shape, attrs] — mirrored where marked.
-const E = (cx, cy, rx, ry, rot = 0) => ({ t: 'ellipse', a: { cx, cy, rx, ry, transform: rot ? `rotate(${rot} ${cx} ${cy})` : '' } });
-const P = d => ({ t: 'path', a: { d } });
+const regionOf = tag => { const t = humanize(tag); return GROUP_RULES.find(([, re]) => re.test(t))?.[0] ?? null; };
+/** Display group for a tag: its body group if it has one, otherwise the readable tag. */
+const groupOf = tag => regionOf(tag) ?? humanize(tag);
+/** Drawn regions a tag lights up (a generic "shoulders" tag lights all three delts). */
+const regionsOf = tag => {
+  const t = humanize(tag), sub = SUB_RULES.find(([, re]) => re.test(t))?.[0];
+  if (sub) return [sub];
+  const g = regionOf(tag);
+  return g ? (GROUP_REGIONS[g] ?? [g]) : [];
+};
+const labelOf = key => LABEL[key] ?? key;
+const groupHref = g => '#/muscle/' + encodeURIComponent(g);
+
+// Figure on a 200×440 grid, drawn for the figure's right side (viewer's left) and mirrored.
+// [region, path, mirrored?]
 const FRONT = [
-  ['traps', P('M86 64 L100 72 L114 64 L128 80 L100 84 L72 80 Z')],
-  ['shoulders', E(60, 96, 16, 18, -20), true],
-  ['chest', P('M100 88 C 100 88 72 84 66 104 C 64 122 80 130 100 126 Z'), true],
-  ['biceps', E(49, 140, 10, 24, 8), true],
-  ['forearms', E(40, 196, 9, 27, 6), true],
-  ['abs', P('M88 132 H112 Q114 132 114 136 V198 Q100 212 86 198 V136 Q86 132 88 132 Z')],
-  ['obliques', E(76, 168, 8, 28, -6), true],
-  ['quads', E(83, 268, 15, 46, 4), true],
-  ['adductors', E(96, 244, 5, 22, -4), true],
-  ['calves', E(83, 354, 10, 32, 2), true],
+  ['traps',      'M89 60 C84 67 76 72 66 75 L89 76 Z', true],
+  ['sideDelts',  'M61 77 C49 78 41 88 40 101 C40 111 42 119 46 125 C45 110 48 93 61 77 Z', true],
+  ['frontDelts', 'M64 77 C52 92 49 108 49 122 C56 113 64 101 72 91 C71 83 68 79 64 77 Z', true],
+  ['upperChest', 'M74 81 C83 78 92 79 98.5 81 L98.5 100 C88 97.5 79 98 71 101 C70 93 71 86 74 81 Z', true],
+  ['lowerChest', 'M71 104 C79 100.5 89 100.5 98.5 102.5 L98.5 124 C91 128.5 82 128.5 75 124.5 C69 119 68 111 71 104 Z', true],
+  ['biceps',     'M47 127 C41 138 41 155 45 166 C51 168 57 160 58 148 C58 137 54 128 49 124 Z', true],
+  ['forearms',   'M43 171 C37 183 35 201 37 216 C41 222 47 220 49 210 C53 196 55 182 55 171 C51 168 47 168 43 171 Z', true],
+  ['obliques',   'M77 130 C73 143 73 170 78 195 C81 201 85 204 86.5 201 L86.5 134 C83 130 80 128 77 130 Z', true],
+  ['abs',        'M88.5 131 H98.5 V148 H88.5 Q87.5 148 87.5 147 V132 Q87.5 131 88.5 131 Z', true],
+  ['abs',        'M88.5 151 H98.5 V168 H88.5 Q87.5 168 87.5 167 V152 Q87.5 151 88.5 151 Z', true],
+  ['abs',        'M88.5 171 H98.5 V188 H88.5 Q87.5 188 87.5 187 V172 Q87.5 171 88.5 171 Z', true],
+  ['abs',        'M88 191 H98.5 V222 C94 220 90 214 88 206 Z', true],
+  ['quads',      'M75 228 C67 248 65 282 69 307 C73 319 81 323 87 319 C91 301 92 272 90 244 C86 236 81 230 75 228 Z', true],
+  ['adductors',  'M92 238 C96 246 98.5 258 98.5 276 C96 284 93 281 92.5 272 C92 260 91.5 248 92 238 Z', true],
+  ['calves',     'M74 338 C70 353 70 377 74 396 C78 402 82 400 84 392 C86 372 86 351 82 338 C79 335 76 335 74 338 Z', true],
 ];
 const BACK = [
-  ['traps', P('M100 62 L128 82 L112 96 L100 128 L88 96 L72 82 Z')],
-  ['shoulders', E(60, 96, 16, 18, 20), true],
-  ['triceps', E(49, 140, 10, 24, 8), true],
-  ['forearms', E(40, 196, 9, 27, 6), true],
-  ['lats', P('M88 104 C 70 108 66 130 72 160 C 78 176 88 184 96 188 L96 132 Z'), true],
-  ['upperBack', P('M92 102 H108 L106 132 H94 Z')],
-  ['lowerBack', P('M90 170 H110 Q112 186 110 200 H90 Q88 186 90 170 Z')],
-  ['glutes', E(86, 226, 15, 17), true],
-  ['hamstrings', E(84, 282, 14, 36, 3), true],
-  ['calves', E(84, 350, 12, 32, 2), true],
+  ['traps',      'M100 56 C92 64 80 70 66 76 C78 86 89 101 100 133 C111 101 122 86 134 76 C120 70 108 64 100 56 Z', false],
+  ['sideDelts',  'M61 77 C49 78 41 88 40 101 C40 111 42 119 46 125 C45 110 48 93 61 77 Z', true],
+  ['rearDelts',  'M64 78 C52 91 49 107 49 122 C56 112 63 100 71 90 C70 84 67 80 64 78 Z', true],
+  ['upperBack',  'M74 92 C82 102 91 116 97.5 138 L97.5 147 C87 141 78 130 73 117 C72 107 72 99 74 92 Z', true],
+  ['lats',       'M72 121 C80 136 90 146 98 151 L98 168 C90 175 84 186 80 197 C72 181 68 161 68 141 C68 131 69.5 125 72 121 Z', true],
+  ['lowerBack',  'M88.5 171 C92 169 95.5 168.5 98.5 168.5 L98.5 214 C94 214 90 212 86.5 208 C86.5 195 86.5 182 88.5 171 Z', true],
+  ['triceps',    'M47 127 C41 138 41 156 45 168 C51 170 57 162 58 150 C58 138 54 129 49 124 Z', true],
+  ['forearms',   'M43 173 C37 185 35 202 37 217 C41 223 47 221 49 211 C53 197 55 184 55 173 C51 170 47 170 43 173 Z', true],
+  ['glutes',     'M75 214 C70 226 72 244 82 252 C90 256 98 252 98.5 244 L98.5 217 C92 212 82 210 75 214 Z', true],
+  ['hamstrings', 'M72 257 C68 277 70 302 76 316 C82 322 90 320 94 312 C98 296 98 276 96 259 C88 256 80 255 72 257 Z', true],
+  ['calves',     'M72 334 C66 348 68 369 76 381 C82 385 88 381 90 371 C92 357 90 343 84 334 C80 331 76 331 72 334 Z', true],
 ];
-// Non-muscle silhouette underneath.
-const SILHOUETTE = 'M100 12 a22 22 0 1 1 -0.1 0 Z M90 56 h20 v12 h-20 Z M64 78 Q100 66 136 78 L150 90 L162 150 L168 224 L156 226 L144 160 L132 118 L130 206 L136 240 L130 330 L126 400 L106 404 L104 300 L100 250 L96 300 L94 404 L74 400 L70 330 L64 240 L70 206 L68 118 L56 160 L44 226 L32 224 L38 150 L50 90 Z';
+// Non-muscle silhouette (right half; mirrored). Head, neck, torso, arm, hand, leg, foot.
+const BODY_HALF = [
+  'M100 60 C91 60 87 64 85 68 C75 72 62 72 56 78 C44 84 39 96 39 110 L45 125 L67 119 C69 150 72 190 74 212 C70 224 68 232 68 240 L100 240 Z',
+  'M42 118 C35 138 35 158 39 168 C33 184 31 204 33 223 L49 225 C53 205 57 187 57 171 C61 157 63 137 59 119 Z',
+  'M68 232 C63 262 63 300 69 325 C65 351 65 381 71 405 L87 407 C89 381 91 351 89 327 C97 301 100 270 100 240 Z',
+];
+const BODY_ROUND = [[100, 34, 17, 21], [40, 236, 8, 12], [80, 416, 11, 7]]; // cx, cy, rx, ry (hands/feet mirrored)
 
-function drawFigure(host, parts, stats, ramp) {
+function drawFigure(host, parts, regionStats, ramp, label) {
   host.innerHTML = '';
-  const svg = el('svg', { viewBox: '0 0 200 420', role: 'img', 'aria-label': host.id === 'bodyFront' ? 'Body map, front' : 'Body map, back' }, host);
-  el('path', { d: SILHOUETTE, fill: css('--body') }, svg);
-  for (const [region, shape, mirror] of parts) {
-    for (const flip of mirror ? [false, true] : [false]) {
-      const n = el(shape.t, { ...shape.a, class: 'muscle', 'data-region': region, fill: ramp(stats[region]?.sets ?? 0) }, svg);
-      if (flip) n.setAttribute('transform', `translate(200 0) scale(-1 1) ${shape.a.transform ?? ''}`);
-      n.addEventListener('pointermove', e => { highlight(region); showTip(regionTip(region, stats[region]), e.clientX, e.clientY); });
+  const svg = el('svg', { viewBox: '0 0 200 432', role: 'img', 'aria-label': label }, host);
+  const base = css('--body'), mirror = 'translate(200 0) scale(-1 1)';
+  for (const d of BODY_HALF) for (const t of ['', mirror]) el('path', { d, fill: base, transform: t }, svg);
+  BODY_ROUND.forEach(([cx, cy, rx, ry], i) => { for (const t of i ? ['', mirror] : ['']) el('ellipse', { cx, cy, rx, ry, fill: base, transform: t }, svg); });
+  for (const [region, d, mirrored] of parts) {
+    for (const t of mirrored ? ['', mirror] : ['']) {
+      const n = el('path', { d, transform: t, class: 'muscle', 'data-region': region, fill: ramp(region), tabindex: -1 }, svg);
+      const group = PARENT[region] ?? region;
+      n.addEventListener('pointermove', e => { highlight(region); showTip(regionTip(region, regionStats[region]), e.clientX, e.clientY); });
       n.addEventListener('pointerleave', () => { highlight(null); hideTip(); });
+      n.addEventListener('click', () => { hideTip(); location.hash = groupHref(group); });
     }
   }
 }
 
 function highlight(region) {
-  document.querySelectorAll('.muscle').forEach(m => m.classList.toggle('hl', m.dataset.region === region));
-  document.querySelectorAll('#bodyRank tr[data-region]').forEach(r => r.style.background = r.dataset.region === region ? 'var(--accent-soft)' : '');
+  document.querySelectorAll('.muscle').forEach(m => m.classList.toggle('hl', m.dataset.region === region || PARENT[m.dataset.region] === region));
+  document.querySelectorAll('tr[data-region]').forEach(r => r.classList.toggle('hl', r.dataset.region === (PARENT[region] ?? region)));
 }
 
 function regionTip(region, st) {
-  const name = REGION_LABEL[region] ?? region;
-  if (!st) return `<b>${esc(name)}</b><div>Not trained in this range</div>`;
+  const name = labelOf(region), group = PARENT[region];
+  const head = `<b>${esc(name)}</b>${group ? `<div class="meta">${esc(labelOf(group))}</div>` : ''}`;
+  if (!st) return `${head}<div>Not trained in this range</div>`;
   const top = st.exercises.slice(0, 3).map(([n, c]) => `<div class="row"><span>${esc(n)}</span><span>${c} sets</span></div>`).join('');
-  return `<b>${esc(name)}</b><div class="row"><span>Sets</span><span>${fmt(st.sets)}</span></div><div class="row"><span>Tonnage</span><span>${fmt(st.tonnage)} kg</span></div>${top}`;
+  return `${head}<div class="row"><span>Sets</span><span>${fmt(st.sets)}</span></div><div class="row"><span>Tonnage</span><span>${fmt(st.tonnage)} kg</span></div>${top}<div class="meta" style="margin-top:4px">Click for details</div>`;
 }
 
-function renderBody() {
-  const s = since(), stats = {}, unmapped = {};
+/** Aggregate sets per drawn region and per group for the exercises active since `s`. */
+function muscleStats(s, onlyGroup) {
+  const regions = {}, groups = {};
+  const add = (bucket, key, sets, tonnage, name) => { const st = (bucket[key] ??= { sets: 0, tonnage: 0, exercises: [] }); st.sets += sets; st.tonnage += tonnage; st.exercises.push([name, sets]); };
   for (const e of data.exercises) {
     const sess = e.sessions.filter(x => x.date >= s);
     if (!sess.length) continue;
+    const g = groupOf(e.muscle);
+    if (onlyGroup && g !== onlyGroup) continue;
     const sets = sess.reduce((a, x) => a + x.sets, 0), tonnage = sess.reduce((a, x) => a + x.volume, 0);
-    const region = regionOf(e.muscle);
-    const bucket = region ? stats : unmapped, key = region ?? humanize(e.muscle);
-    const st = (bucket[key] ??= { sets: 0, tonnage: 0, exercises: [] });
-    st.sets += sets; st.tonnage += tonnage; st.exercises.push([e.name, sets]);
+    add(groups, g, sets, tonnage, e.name);
+    for (const r of regionsOf(e.muscle)) add(regions, r, sets, tonnage, e.name);
   }
-  for (const st of [...Object.values(stats), ...Object.values(unmapped)]) st.exercises.sort((a, b) => b[1] - a[1]);
-  const max = Math.max(1, ...Object.values(stats).map(x => x.sets));
-  const steps = ['--b1', '--b2', '--b3', '--b4'].map(css);
-  // Square-root scale so a couple of high-volume muscles don't flatten the rest into one step.
-  const ramp = n => n <= 0 ? css('--b0') : steps[Math.min(3, Math.floor(Math.sqrt(n / max) * 4 - 1e-9))];
-  drawFigure($('#bodyFront'), FRONT, stats, ramp);
-  drawFigure($('#bodyBack'), BACK, stats, ramp);
+  for (const st of [...Object.values(regions), ...Object.values(groups)]) st.exercises.sort((a, b) => b[1] - a[1]);
+  return { regions, groups };
+}
+
+// Square-root scale so a couple of high-volume muscles don't flatten the rest into one step.
+function makeRamp(regions) {
+  const max = Math.max(1, ...Object.values(regions).map(x => x.sets));
+  const steps = ['--b1', '--b2', '--b3', '--b4'].map(css), zero = css('--b0');
+  const fill = n => n <= 0 ? zero : steps[Math.min(3, Math.floor(Math.sqrt(n / max) * 4 - 1e-9))];
   const q = i => Math.round(max * (i / 4) ** 2);
-  $('#bodyLegend').innerHTML = `<i style="background:var(--b0)"></i> 0 ` + steps.map((c, i) => `<i style="background:${c}"></i> ${i === 0 ? '1' : q(i) + 1}–${q(i + 1)}`).join(' ') + ' sets';
-  const rows = [...Object.entries(stats).map(([k, v]) => [k, v, true]), ...Object.entries(unmapped).map(([k, v]) => [k, v, false])]
-    .sort((a, b) => b[1].sets - a[1].sets);
-  const untrained = Object.keys(MUSCLE_ALIASES).filter(k => !stats[k]).map(k => REGION_LABEL[k] ?? k);
+  const legend = `<i style="background:var(--b0)"></i> 0 ` + steps.map((c, i) => `<i style="background:${c}"></i> ${i === 0 ? 1 : q(i) + 1}–${q(i + 1)}`).join(' ') + ' sets';
+  return { fill, legend };
+}
+
+function renderBodyInto(front, back, regions) {
+  const { fill, legend } = makeRamp(regions);
+  const ramp = region => fill(regions[region]?.sets ?? 0);
+  drawFigure(front, FRONT, regions, ramp, 'Body map, front');
+  drawFigure(back, BACK, regions, ramp, 'Body map, back');
+  return legend;
+}
+
+function renderBody() {
+  const { regions, groups } = muscleStats(since());
+  $('#bodyLegend').innerHTML = renderBodyInto($('#bodyFront'), $('#bodyBack'), regions);
+  const { fill } = makeRamp(groups);
+  const rows = Object.entries(groups).sort((a, b) => b[1].sets - a[1].sets);
+  const untrained = GROUPS.filter(g => !groups[g]).map(labelOf);
   $('#bodyRank').innerHTML = rows.length ? `<table><thead><tr><th>Muscle</th><th>Sets</th><th>Tonnage (kg)</th></tr></thead><tbody>${
-    rows.map(([k, v, mapped]) => `<tr data-region="${mapped ? k : ''}"><td><i style="background:${mapped ? ramp(v.sets) : 'var(--s-other)'}"></i>${esc(REGION_LABEL[k] ?? k)}${mapped ? '' : ' <span class="meta">(not on map)</span>'}</td><td>${fmt(v.sets)}</td><td>${fmt(v.tonnage)}</td></tr>`).join('')
+    rows.map(([k, v]) => { const mapped = GROUPS.includes(k); return `<tr data-region="${esc(k)}" class="link-row"><td><a href="${groupHref(k)}"><i style="background:${mapped ? fill(v.sets) : 'var(--s-other)'}"></i>${esc(labelOf(k))}</a>${mapped ? '' : ' <span class="meta">(not on map)</span>'}</td><td>${fmt(v.sets)}</td><td>${fmt(v.tonnage)}</td></tr>`; }).join('')
   }</tbody></table>${untrained.length ? `<p class="meta" style="margin:8px 0 0">Not trained in this range: ${untrained.map(esc).join(', ')}</p>` : ''}` : '<div class="empty">No workouts in this range.</div>';
   document.querySelectorAll('#bodyRank tr[data-region]').forEach(r => {
-    if (!r.dataset.region) return;
     r.addEventListener('pointerenter', () => highlight(r.dataset.region));
     r.addEventListener('pointerleave', () => highlight(null));
   });
@@ -498,11 +587,12 @@ function renderLift() {
     [...sess].reverse().map(x => `<tr><td>${fmtDate(x.date)}</td><td>${esc(x.bestSet)}</td><td>${x.e1rm}</td><td>${x.sets}</td><td>${fmt(x.volume)}</td></tr>`).join('')}</tbody></table>`;
   document.querySelectorAll('#liftChips button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.lift === liftId)));
   $('#liftSelect').value = liftId;
+  $('#liftLink').href = exHref(liftId);
 }
 
 function renderPRs() {
   const s = since(), list = data.prs.filter(p => p.date >= s).slice(0, 60);
-  $('#prs').innerHTML = list.length ? list.map(p => `<li><span class="badge">${p.kind}</span><span class="ex">${esc(p.exercise)}</span><span class="val">${p.value} kg</span>
+  $('#prs').innerHTML = list.length ? list.map(p => `<li><span class="badge">${p.kind}</span><a class="ex" href="${exHref(p.exerciseId)}">${esc(p.exercise)}</a><span class="val">${p.value} kg</span>
     <span class="detail">${fmtDate(p.date)} · ${esc(p.set)} · <span class="up">+${(p.value - p.previous).toFixed(1)} kg</span></span></li>`).join('')
     : '<li class="empty" style="display:block">No PRs in this range yet — keep going.</li>';
 }
@@ -547,7 +637,7 @@ function renderAll() {
   $('#meta').textContent = data.range.first
     ? `${fmt(data.totals.workouts)} workouts since ${fmtDate(data.range.first)} · synced ${data.lastSync ? fmtDate(data.lastSync) : 'never'}`
     : 'No workouts cached yet — press Sync now.';
-  renderTiles(); renderLiftControls(); renderLift(); renderPRs(); renderVolume(); renderBody(); renderConsistency();
+  renderCurrent();
 }
 
 async function load() {
@@ -557,11 +647,155 @@ async function load() {
   } catch (e) { $('#err').textContent = 'Could not load data: ' + e.message; $('#err').style.display = 'block'; }
 }
 
+
+// ---- routing, search and detail pages ---------------------------------
+const exHref = id => '#/exercise/' + id;
+const route = () => { const [, kind, arg] = location.hash.match(/^#\/(exercise|muscle)\/(.+)$/) ?? []; return kind ? { kind, arg: decodeURIComponent(arg) } : { kind: 'overview' }; };
+const exercisesInGroup = g => data.exercises.filter(e => groupOf(e.muscle) === g);
+
+function renderCurrent() {
+  if (!data) return;
+  const r = route();
+  $('#overview').hidden = r.kind !== 'overview';
+  $('#detail').hidden = r.kind === 'overview';
+  if (r.kind === 'exercise') renderExercise(+r.arg);
+  else if (r.kind === 'muscle') renderMuscle(r.arg);
+  else { renderTiles(); renderLiftControls(); renderLift(); renderPRs(); renderVolume(); renderBody(); renderConsistency(); document.title = 'Strength Dashboard'; }
+}
+
+const tileHtml = tiles => `<section class="tiles">${tiles.map(([l, v, sub]) => `<div class="tile"><div class="label">${l}</div><div class="num">${v}</div><div class="sub">${sub ?? ''}</div></div>`).join('')}</section>`;
+const crumbs = html => `<nav class="crumbs"><a href="#">← Overview</a>${html ? ` · ${html}` : ''}</nav>`;
+const notFound = what => { $('#detail').innerHTML = crumbs() + `<div class="card empty">${esc(what)} not found in your synced data.</div>`; };
+
+function renderExercise(id) {
+  const e = data.exercises.find(x => x.id === id);
+  if (!e) return notFound('That exercise');
+  document.title = `${e.name} · Strength Dashboard`;
+  const s = since(), sess = e.sessions.filter(x => x.date >= s), weighted = sess.filter(x => x.e1rm);
+  const group = groupOf(e.muscle);
+  const bestIn = weighted.reduce((a, b) => (b.e1rm > (a?.e1rm ?? 0) ? b : a), null);
+  const delta = weighted.length > 1 ? weighted.at(-1).e1rm - weighted[0].e1rm : null;
+  const prs = data.prs.filter(p => p.exerciseId === id);
+  const bestE = e.sessions.filter(x => x.e1rm).reduce((a, b) => (b.e1rm > (a?.e1rm ?? 0) ? b : a), null);
+  $('#detail').innerHTML = crumbs(`<a href="${groupHref(group)}">${esc(labelOf(group))}</a>`) + `
+    <div class="page-title"><h2>${esc(e.name)}</h2>
+      <a class="pill" href="${groupHref(group)}">${esc(labelOf(group))}</a>${e.muscle && humanize(e.muscle) !== labelOf(group) ? `<span class="pill">${esc(humanize(e.muscle))}</span>` : ''}${e.equipment ? `<span class="pill">${esc(e.equipment)}</span>` : ''}
+      <span class="meta">${e.sessions.length} sessions · ${fmtDate(e.firstDate)} – ${fmtDate(e.lastDate)}</span></div>` +
+    tileHtml([
+      ['Best e1RM', e.bestE1rm ? `${e.bestE1rm} kg` : '–', bestE ? `${esc(bestE.bestSet)} · ${fmtDate(bestE.date)}` : 'No weighted sets'],
+      ['Heaviest set', e.bestWeight ? `${fmt(e.bestWeight)} kg` : '–', 'All time'],
+      ['e1RM in range', bestIn ? `${bestIn.e1rm} kg` : '–', delta == null ? 'Not enough sessions' : `<span class="${delta >= 0 ? 'up' : ''}">${delta >= 0 ? '▲ +' : '▼ '}${delta.toFixed(1)} kg</span> first → last`],
+      ['Sessions in range', fmt(sess.length), `${fmt(sess.reduce((a, x) => a + x.sets, 0))} sets`],
+      ['Volume in range', `${fmt(sess.reduce((a, x) => a + x.volume, 0))} kg`, `${fmt(e.totalVolume)} kg all time`],
+    ]) + `
+    <section class="card"><h2>Estimated 1RM</h2><p class="hint">Best set per session (Epley, sets of 10 reps or fewer).</p><div class="chart" id="exChart"></div></section>
+    <div class="grid2">
+      <section class="card"><h2>Rep maxes</h2><p class="hint">Heaviest weight you've lifted for at least that many reps, all time.</p><div class="table-wrap" style="max-height:none" id="exRM"></div></section>
+      <section class="card"><h2>PR history</h2><p class="hint">Every new best for this exercise.</p><ul class="prs" id="exPRs"></ul></section>
+    </div>
+    <section class="card"><h2>Volume per session</h2><p class="hint">Weight × reps (kg) in the selected range.</p><div class="chart" id="exVol"></div></section>
+    <section class="card"><h2>Sessions</h2><div class="table-wrap" id="exTable"></div></section>`;
+  lineChart($('#exChart'), weighted.map(x => ({ ...x, y: x.e1rm })), 'kg');
+  $('#exRM').innerHTML = e.repMaxes.length ? `<table><thead><tr><th>Reps</th><th>Weight</th><th>Set</th><th>Date</th><th>Est. 1RM</th></tr></thead><tbody>${
+    e.repMaxes.map(r => `<tr><td>${r.reps}RM</td><td><b>${r.weightKg} kg</b></td><td>${r.weightKg} × ${r.actualReps}</td><td>${fmtDate(r.date)}</td><td>${r.actualReps <= 10 ? (r.actualReps === 1 ? r.weightKg : Math.round(r.weightKg * (1 + r.actualReps / 30) * 10) / 10) + ' kg' : '–'}</td></tr>`).join('')
+  }</tbody></table><p class="rm-note">If a set shows more reps than the target (e.g. 5RM from a set of 8), your true max at that rep count is probably higher.</p>` : '<div class="empty">No weighted sets logged.</div>';
+  $('#exPRs').innerHTML = prs.length ? prs.map(p => `<li><span class="badge">${p.kind}</span><span class="ex">${fmtDate(p.date)}</span><span class="val">${p.value} kg</span><span class="detail">${esc(p.set)} · <span class="up">+${(p.value - p.previous).toFixed(1)} kg</span></span></li>`).join('') : '<li class="empty" style="display:block">No PRs yet.</li>';
+  const color = css('--s1');
+  stackedColumns($('#exVol'), sess.map(x => ({ week: x.date, v: { Volume: x.volume } })), ['Volume'], { Volume: color }, 'kg',
+    { title: r => fmtDate(r.week), tick: r => fmtDate(r.week, { day: 'numeric', month: 'short' }) });
+  $('#exTable').innerHTML = `<table><thead><tr><th>Date</th><th>Best set</th><th>e1RM (kg)</th><th>Sets</th><th>Volume (kg)</th></tr></thead><tbody>${
+    [...sess].reverse().map(x => `<tr><td>${fmtDate(x.date)}</td><td>${esc(x.bestSet)}</td><td>${x.e1rm ?? '–'}</td><td>${x.sets}</td><td>${fmt(x.volume)}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function renderMuscle(group) {
+  const exs = exercisesInGroup(group);
+  if (!exs.length) return notFound(`Muscle group "${group}"`);
+  document.title = `${labelOf(group)} · Strength Dashboard`;
+  const s = since();
+  const { regions, groups } = muscleStats(s, group);
+  const all = muscleStats(s).groups;
+  const totalSets = Object.values(all).reduce((a, g) => a + g.sets, 0);
+  const g = groups[group] ?? { sets: 0, tonnage: 0 };
+  const rows = exs.map(e => { const sess = e.sessions.filter(x => x.date >= s); return { e, sess, sets: sess.reduce((a, x) => a + x.sets, 0), vol: sess.reduce((a, x) => a + x.volume, 0) }; })
+    .sort((a, b) => b.sets - a.sets || b.e.sessions.length - a.e.sessions.length);
+  const last = exs.map(e => e.lastDate).sort().at(-1);
+  const subs = {}; for (const r of rows) if (r.sets) { const k = humanize(r.e.muscle); subs[k] = (subs[k] || 0) + r.sets; }
+  const ids = new Set(exs.map(e => e.id));
+  const prs = data.prs.filter(p => ids.has(p.exerciseId) && p.date >= s);
+  $('#detail').innerHTML = crumbs() + `
+    <div class="page-title"><h2>${esc(labelOf(group)).replace(/^./, c => c.toUpperCase())}</h2><span class="meta">${exs.length} exercises logged · last trained ${fmtDate(last)}</span></div>` +
+    tileHtml([
+      ['Sets in range', fmt(g.sets), totalSets ? `${Math.round((100 * g.sets) / totalSets)}% of all your sets` : ''],
+      ['Tonnage in range', `${fmt(g.tonnage)} kg`, 'Weight × reps'],
+      ['Exercises used', fmt(rows.filter(r => r.sets).length), `of ${exs.length} all time`],
+      ['PRs in range', fmt(prs.length), ''],
+    ]) + `
+    <div class="grid2" style="align-items:start">
+      <section class="card"><h2>Weekly sets</h2><p class="hint">Logged sets per week for ${esc(labelOf(group))}.</p><div class="chart" id="muWeekly"></div></section>
+      <section class="card"><h2>On the body</h2><p class="hint">Darker = more sets in range.</p>
+        <div class="bodymap compact"><div class="figure"><div id="muFront"></div><div class="cap">Front</div></div><div class="figure"><div id="muBack"></div><div class="cap">Back</div></div></div>
+        <div class="heat-legend" id="muLegend"></div>
+        ${Object.keys(subs).length > 1 ? `<table style="margin-top:10px"><thead><tr><th>Trainerize tag</th><th>Sets</th></tr></thead><tbody>${Object.entries(subs).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${fmt(v)}</td></tr>`).join('')}</tbody></table>` : ''}
+      </section>
+    </div>
+    <section class="card"><h2>Exercises</h2><p class="hint">Sorted by sets in the selected range.</p><div class="table-wrap" style="max-height:none">
+      <table><thead><tr><th>Exercise</th><th>Sets</th><th>Sessions</th><th>Volume (kg)</th><th>Best e1RM</th><th>Last done</th></tr></thead><tbody>${
+        rows.map(r => `<tr><td><a href="${exHref(r.e.id)}">${esc(r.e.name)}</a></td><td>${fmt(r.sets)}</td><td>${r.sess.length}</td><td>${fmt(r.vol)}</td><td>${r.e.bestE1rm ? r.e.bestE1rm + ' kg' : '–'}</td><td>${fmtDate(r.e.lastDate)}</td></tr>`).join('')
+      }</tbody></table></div></section>
+    <section class="card"><h2>Recent PRs</h2><ul class="prs" id="muPRs"></ul></section>`;
+  $('#muLegend').innerHTML = renderBodyInto($('#muFront'), $('#muBack'), regions);
+  const weekly = data.weekly.filter(w => w.week >= s).map(w => ({ week: w.week, v: { Sets: Object.entries(w.muscles).filter(([k]) => groupOf(k) === group).reduce((a, [, v]) => a + v.sets, 0) } }));
+  stackedColumns($('#muWeekly'), weekly, ['Sets'], { Sets: css('--s1') }, 'sets');
+  $('#muPRs').innerHTML = prs.length ? prs.slice(0, 40).map(p => `<li><span class="badge">${p.kind}</span><a class="ex" href="${exHref(p.exerciseId)}">${esc(p.exercise)}</a><span class="val">${p.value} kg</span><span class="detail">${fmtDate(p.date)} · ${esc(p.set)} · <span class="up">+${(p.value - p.previous).toFixed(1)} kg</span></span></li>`).join('') : '<li class="empty" style="display:block">No PRs in this range.</li>';
+}
+
+// Search: every whitespace-separated word must match the exercise name, its muscle, or equipment.
+let hits = [], sel = -1;
+const mark = (text, words) => { let h = esc(text); for (const w of words) h = h.replace(new RegExp(`(${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'ig'), '<mark>$1</mark>'); return h; };
+function search(q) {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const box = $('#results'), input = $('#q');
+  if (!words.length || !data) { box.classList.remove('open'); input.setAttribute('aria-expanded', 'false'); hits = []; return; }
+  const groups = [...new Set(data.exercises.map(e => groupOf(e.muscle)))]
+    .filter(g => words.every(w => labelOf(g).includes(w) || g.toLowerCase().includes(w)))
+    .map(g => ({ href: groupHref(g), label: labelOf(g), meta: `${exercisesInGroup(g).length} exercises`, kind: 'Muscles' }));
+  const exs = data.exercises.filter(e => { const hay = `${e.name} ${humanize(e.muscle)} ${labelOf(groupOf(e.muscle))} ${e.equipment}`.toLowerCase(); return words.every(w => hay.includes(w)); })
+    .sort((a, b) => b.recentSessions - a.recentSessions || b.sessions.length - a.sessions.length).slice(0, 12)
+    .map(e => ({ href: exHref(e.id), label: e.name, meta: `${labelOf(groupOf(e.muscle))} · ${e.sessions.length} sessions`, kind: 'Exercises' }));
+  hits = [...groups.slice(0, 4), ...exs]; sel = hits.length ? 0 : -1;
+  let lastKind = '';
+  box.innerHTML = hits.length ? hits.map((h, i) => { const head = h.kind !== lastKind ? `<div class="sect">${h.kind}</div>` : ''; lastKind = h.kind;
+    return `${head}<a id="hit${i}" role="option" href="${h.href}" aria-selected="${i === sel}"><span>${mark(h.label, words)}</span><small>${esc(h.meta)}</small></a>`; }).join('')
+    : `<div class="none">No exercises or muscles match “${esc(q)}”.</div>`;
+  box.classList.add('open'); input.setAttribute('aria-expanded', 'true');
+  input.setAttribute('aria-activedescendant', sel >= 0 ? 'hit' + sel : '');
+}
+function moveSel(d) {
+  if (!hits.length) return;
+  sel = (sel + d + hits.length) % hits.length;
+  document.querySelectorAll('#results a').forEach((a, i) => a.setAttribute('aria-selected', String(i === sel)));
+  $('#hit' + sel)?.scrollIntoView({ block: 'nearest' });
+  $('#q').setAttribute('aria-activedescendant', 'hit' + sel);
+}
+const closeSearch = () => { $('#results').classList.remove('open'); $('#q').setAttribute('aria-expanded', 'false'); };
+$('#q').addEventListener('input', e => search(e.target.value));
+$('#q').addEventListener('focus', e => e.target.value && search(e.target.value));
+$('#q').addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); moveSel(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); moveSel(-1); }
+  else if (e.key === 'Enter' && sel >= 0) { e.preventDefault(); location.hash = hits[sel].href; }
+  else if (e.key === 'Escape') { closeSearch(); e.target.blur(); }
+});
+$('#results').addEventListener('click', e => { if (e.target.closest('a')) { closeSearch(); $('#q').value = ''; } });
+document.addEventListener('pointerdown', e => { if (!e.target.closest('.search')) closeSearch(); });
+document.addEventListener('keydown', e => { if (e.key === '/' && !/input|select|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); $('#q').focus(); } });
+addEventListener('hashchange', () => { closeSearch(); $('#q').value = ''; hideTip(); renderCurrent(); scrollTo(0, 0); });
+
 // ---- events ----------------------------------------------------------
 document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => {
   rangeDays = +b.dataset.range;
   document.querySelectorAll('[data-range]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-  renderTiles(); renderLift(); renderPRs(); renderVolume(); renderBody();
+  renderCurrent();
 }));
 document.querySelectorAll('[data-metric]').forEach(b => b.addEventListener('click', () => {
   metric = b.dataset.metric;
@@ -584,7 +818,7 @@ $('#theme').addEventListener('click', () => {
   renderAll();
 });
 try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
-let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (data) { renderLift(); renderVolume(); renderConsistency(); } }, 150); });
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(renderCurrent, 150); });
 load();
 </script>
 </body>

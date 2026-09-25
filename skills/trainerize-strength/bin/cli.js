@@ -80,8 +80,9 @@ function cmdStats() {
         range: s.range, totals: s.totals,
         consistency: { ...s.consistency, trackedDays: undefined },
         exercises: pick.map(e => ({
-            name: e.name, muscle: e.muscle, bestE1rmKg: e.bestE1rm, bestWeightKg: e.bestWeight, lastDate: e.lastDate,
-            totalSessions: e.sessions.length,
+            id: e.id, name: e.name, muscle: e.muscle, equipment: e.equipment,
+            bestE1rmKg: e.bestE1rm, bestWeightKg: e.bestWeight, firstDate: e.firstDate, lastDate: e.lastDate,
+            totalSessions: e.sessions.length, repMaxes: e.repMaxes,
             recent: e.sessions.filter(x => x.date >= since).map(({ date, e1rm, bestSet, volume, sets }) => ({ date, e1rm, bestSet, volume, sets })),
         })),
         recentPRs: s.prs.filter(p => p.date >= since).slice(0, 25),

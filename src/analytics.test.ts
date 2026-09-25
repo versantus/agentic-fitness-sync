@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildSummary, e1rm, toSets, weekStart } from './analytics.js';
+import { buildSummary, e1rm, repMaxes, toSets, weekStart } from './analytics.js';
 
 const workout = (id: number, date: string, sets: [number, number][], name = 'Back Squat') => ({
   id, date, name: '/ Squat', status: 'tracked',
@@ -47,4 +47,10 @@ test('streak counts consecutive weeks with a strength workout', () => {
   const cal = ['2026-09-01', '2026-09-08', '2026-09-15'].map((date, i) => ({ id: i, date, type: 'workoutRegular', status: 'tracked', title: '' }));
   const s = buildSummary([], cal, '2026-09-20');
   assert.equal(s.consistency.currentStreakWeeks, 3);
+});
+
+test('rep maxes take the heaviest weight lifted for at least N reps', () => {
+  const rows = toSets([workout(1, '2026-09-01', [[1, 125], [3, 120], [8, 108], [5, 106]])]);
+  const rm = Object.fromEntries(repMaxes(rows).map(r => [r.reps, `${r.weightKg}x${r.actualReps}`]));
+  assert.deepEqual(rm, { 1: '125x1', 2: '120x3', 3: '120x3', 5: '108x8', 8: '108x8' });
 });

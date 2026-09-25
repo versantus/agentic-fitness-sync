@@ -55,8 +55,30 @@ export const weekStart = (date: string) => {
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 export interface Session { date: string; e1rm: number | null; topWeight: number; topReps: number; bestSet: string; volume: number; sets: number }
-export interface ExerciseSummary { id: number; name: string; muscle: string; sessions: Session[]; bestE1rm: number | null; bestWeight: number; lastDate: string; recentSessions: number }
-export interface PR { date: string; exercise: string; kind: 'e1RM' | 'weight'; value: number; previous: number; set: string }
+export interface RepMax { reps: number; weightKg: number; actualReps: number; date: string }
+export interface ExerciseSummary {
+  id: number; name: string; muscle: string; equipment: string; sessions: Session[];
+  bestE1rm: number | null; bestWeight: number; firstDate: string; lastDate: string; recentSessions: number;
+  totalSets: number; totalVolume: number;
+  /** Heaviest weight lifted for at least N reps, for the standard rep targets. */
+  repMaxes: RepMax[];
+}
+export interface PR { date: string; exerciseId: number; exercise: string; kind: 'e1RM' | 'weight'; value: number; previous: number; set: string }
+
+const REP_TARGETS = [1, 2, 3, 5, 8, 10, 12, 15];
+
+export function repMaxes(rows: SetRow[]): RepMax[] {
+  const out: RepMax[] = [];
+  for (const n of REP_TARGETS) {
+    let best: SetRow | null = null;
+    for (const r of rows) {
+      if (!r.weightKg || (r.reps ?? 0) < n) continue;
+      if (!best || r.weightKg > best.weightKg! || (r.weightKg === best.weightKg && (r.reps ?? 0) > (best.reps ?? 0))) best = r;
+    }
+    if (best) out.push({ reps: n, weightKg: best.weightKg!, actualReps: best.reps!, date: best.date });
+  }
+  return out;
+}
 
 export function buildSummary(sets: SetRow[], calendar: CalendarItem[], today = new Date().toISOString().slice(0, 10)) {
   // ---- per-exercise sessions -------------------------------------------
@@ -88,14 +110,16 @@ export function buildSummary(sets: SetRow[], calendar: CalendarItem[], today = n
         volume: Math.round(volume), sets: day.length,
       });
       const name = rows[0].exercise;
-      if (topE && bestE && topE > bestE * 1.001) prs.push({ date, exercise: name, kind: 'e1RM', value: r1(topE), previous: r1(bestE), set: `${top!.weightKg}kg × ${top!.reps}` });
-      if (heaviest?.weightKg && bestW && heaviest.weightKg > bestW) prs.push({ date, exercise: name, kind: 'weight', value: heaviest.weightKg, previous: bestW, set: `${heaviest.weightKg}kg × ${heaviest.reps}` });
+      if (topE && bestE && topE > bestE * 1.001) prs.push({ date, exerciseId: id, exercise: name, kind: 'e1RM', value: r1(topE), previous: r1(bestE), set: `${top!.weightKg}kg × ${top!.reps}` });
+      if (heaviest?.weightKg && bestW && heaviest.weightKg > bestW) prs.push({ date, exerciseId: id, exercise: name, kind: 'weight', value: heaviest.weightKg, previous: bestW, set: `${heaviest.weightKg}kg × ${heaviest.reps}` });
       bestE = Math.max(bestE, topE); bestW = Math.max(bestW, heaviest?.weightKg ?? 0);
     }
     exercises.push({
-      id, name: rows[0].exercise, muscle: rows[0].muscle, sessions,
+      id, name: rows[0].exercise, muscle: rows[0].muscle, equipment: rows[0].equipment, sessions,
       bestE1rm: bestE ? r1(bestE) : null, bestWeight: bestW,
-      lastDate: sessions.at(-1)!.date,
+      firstDate: sessions[0].date, lastDate: sessions.at(-1)!.date,
+      totalSets: rows.length, totalVolume: Math.round(rows.reduce((a, r) => a + (r.weightKg ?? 0) * (r.reps ?? 0), 0)),
+      repMaxes: repMaxes(rows),
       recentSessions: sessions.filter(s => s.date >= yearAgo && s.topWeight > 0).length,
     });
   }
