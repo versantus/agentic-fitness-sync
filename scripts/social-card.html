@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- Source for docs/social-card.png (1200×630 Open Graph image). Rendered by scripts/make-social-card.mjs. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body { background: #20212C; color: #fff; font-family: 'Open Sans', sans-serif; position: relative; }
+  .glow { position: absolute; width: 760px; height: 760px; right: -220px; top: -260px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(240,20,110,.55) 0%, rgba(164,69,178,.28) 45%, rgba(32,33,44,0) 70%); }
+  .copy { position: absolute; left: 72px; top: 70px; width: 520px; }
+  .eyebrow { font: 600 20px 'Outfit', sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #FFB800; }
+  h1 { font: 700 62px/1.04 'Outfit', sans-serif; margin-top: 18px; letter-spacing: -0.015em; }
+  h1 span { color: #F0146E; }
+  p { font-size: 24px; line-height: 1.45; color: #c5c6d3; margin-top: 22px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+  .chips span { font: 600 17px 'Outfit', sans-serif; padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); }
+  .foot { position: absolute; left: 72px; bottom: 54px; font-size: 19px; color: #9798a8; }
+  .foot b { color: #fff; font-family: 'Outfit', sans-serif; font-weight: 600; }
+  .foot .heart { color: #F0146E; }
+  .shot { position: absolute; right: -40px; top: 92px; width: 640px; border-radius: 18px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.12); transform: rotate(-3deg); transform-origin: left top; background: #f4f4f4; }
+  .shot img { display: block; width: 100%; }
+  .shot.second { top: 356px; right: -120px; width: 520px; transform: rotate(-3deg); }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="shot"><img src="../docs/screenshots/overview.png" alt=""></div>
+  <div class="shot second"><img src="../docs/screenshots/body-map.png" alt=""></div>
+  <div class="copy">
+    <div class="eyebrow">Agentic Fitness Sync</div>
+    <h1>Your Trainerize lifts, <span>finally useful.</span></h1>
+    <p>A strength dashboard for your own training data, and something you can ask about it with Claude, ChatGPT or Grok.</p>
+    <div class="chips"><span>e1RM &amp; rep maxes</span><span>PRs</span><span>Body map</span><span>Consistency</span></div>
+  </div>
+  <div class="foot">Made with <span class="heart">♥</span> by <b>Versantus</b> · free &amp; open source</div>
+</body>
+</html>

@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F0146E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23F0146E'/%3E%3Cg fill='%23fff'%3E%3Crect x='10' y='22' width='7' height='20' rx='2.5'/%3E%3Crect x='47' y='22' width='7' height='20' rx='2.5'/%3E%3Crect x='17' y='26' width='5' height='12' rx='2'/%3E%3Crect x='42' y='26' width='5' height='12' rx='2'/%3E%3Crect x='22' y='29.5' width='20' height='5' rx='2'/%3E%3C/g%3E%3C/svg%3E">
 <title>Strength Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -157,6 +159,36 @@ a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
 .site-footer a:hover { color: var(--accent); }
 .site-footer .heart { color: var(--accent); }
 .site-footer .sep { margin: 0 8px; }
+.chart svg { touch-action: pan-y; } /* horizontal drags scrub the chart; vertical still scrolls */
+@media (pointer: coarse) { .search kbd { display: none; } }
+@media (max-width: 600px) {
+  .wrap { padding: 12px max(12px, env(safe-area-inset-right)) 40px max(12px, env(safe-area-inset-left)); }
+  header { gap: 10px; margin-bottom: 12px; }
+  header h1 { font-size: 21px; flex: 1; order: 1; white-space: nowrap; }
+  header .spacer { display: none; }
+  #theme, #sync { order: 2; padding: 6px 12px; }
+  #theme .lbl { display: none; }
+  .meta#meta { order: 3; flex-basis: 100%; font-size: 12px; margin-top: -6px; }
+  .search { order: 4; flex-basis: 100%; max-width: none; }
+  .search input { font-size: 16px; } /* ≥16px stops iOS zooming in on focus */
+  .results { left: 0; right: 0; width: auto; }
+  .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -12px 12px; padding: 0 12px; }
+  .filters::-webkit-scrollbar, .chips::-webkit-scrollbar { display: none; }
+  .filters button { flex: none; padding: 6px 12px; }
+  .tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .tiles .tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .tile { padding: 12px 14px; }
+  .tile .num { font-size: 26px; }
+  .card { padding: 14px; border-radius: 14px; margin-bottom: 12px; }
+  .grid2 { gap: 12px; margin-bottom: 12px; }
+  .card-head select { max-width: 100%; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -14px 10px; padding: 0 14px; }
+  .chips button { flex: none; }
+  .page-title h2 { font-size: 22px; }
+  .prs { max-height: 380px; }
+  th, td { padding: 6px 5px; }
+  .tip { max-width: calc(100vw - 24px); }
+}
 .err { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: none; }
 </style>
 </head>
@@ -173,7 +205,7 @@ a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
       <kbd>/</kbd>
       <div class="results" id="results" role="listbox"></div>
     </div>
-    <button id="theme" title="Toggle light/dark">◐ Theme</button>
+    <button id="theme" title="Toggle light/dark" aria-label="Toggle light/dark theme">◐<span class="lbl"> Theme</span></button>
     <button id="sync" class="primary">Sync now</button>
   </header>
   <div class="demo-banner" id="demoBanner" hidden>
@@ -282,6 +314,14 @@ function showTip(html, x, y) {
   tip.style.top = Math.max(8, y - r.height - 12) + 'px';
 }
 const hideTip = () => { tip.style.display = 'none'; };
+/** Mouse: follow the pointer. Touch: a tap (or drag) shows the tip, and it stays until you tap elsewhere or scroll. */
+function hover(node, show, hide = hideTip) {
+  node.addEventListener('pointermove', show);
+  node.addEventListener('pointerdown', show);
+  node.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') hide(e); });
+}
+document.addEventListener('pointerdown', e => { if (e.pointerType === 'touch' && !e.target.closest('svg')) hideTip(); });
+addEventListener('scroll', () => { if (tip.style.display === 'block') hideTip(); }, { passive: true });
 
 function niceTicks(min, max, count = 5) {
   if (min === max) { min -= 1; max += 1; }
@@ -327,15 +367,14 @@ function lineChart(host, pts, unit) {
   const cross = el('line', { y1: m.t, y2: H - m.b, stroke: css('--text-muted'), 'stroke-width': 1, visibility: 'hidden' }, svg);
   const dot = el('circle', { r: 5, fill: accent, stroke: surface, 'stroke-width': 2, visibility: 'hidden' }, svg);
   const hit = el('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' }, svg);
-  hit.addEventListener('pointermove', e => {
+  hover(hit, e => {
     const bx = svg.getBoundingClientRect(), px = (e.clientX - bx.left) * (W / bx.width);
     let i = 0, bestD = Infinity; xs.forEach((t, j) => { const dd = Math.abs(X(t) - px); if (dd < bestD) { bestD = dd; i = j; } });
     const p = pts[i], cx = X(xs[i]), cy = Y(p.y);
     for (const n of [cross, dot]) n.setAttribute('visibility', 'visible');
     cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); dot.setAttribute('cx', cx); dot.setAttribute('cy', cy);
     showTip(`<b>${fmtDate(p.date)}</b><div class="row"><span>e1RM</span><span>${p.y} ${unit}</span></div><div class="row"><span>Best set</span><span>${esc(p.bestSet)}</span></div><div class="row"><span>Sets · volume</span><span>${p.sets} · ${fmt(p.volume)} kg</span></div>`, e.clientX, e.clientY);
-  });
-  hit.addEventListener('pointerleave', () => { hideTip(); cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); });
+  }, () => { hideTip(); cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); });
 }
 
 // ---- stacked columns -------------------------------------------------
@@ -366,11 +405,10 @@ function stackedColumns(host, rows, keys, colors, unit, { title = r => `Week of 
       el('path', { d: `M${x},${bot}V${top + rad}Q${x},${top} ${x + rad},${top}H${x + bw - rad}Q${x + bw},${top} ${x + bw},${top + rad}V${bot}Z`, fill: colors[k] }, svg);
     });
     const hit = el('rect', { x: m.l + band * i, y: m.t, width: band, height: H - m.t - m.b, fill: 'transparent' }, svg);
-    hit.addEventListener('pointermove', e => {
+    hover(hit, e => {
       const lines = keys.filter(k => r.v[k]).reverse().map(k => `<div class="row"><span><i style="background:${colors[k]}"></i>${esc(labelOf(k))}</span><span>${fmt(r.v[k])}</span></div>`).join('');
       showTip(`<b>${esc(title(r))}</b>${lines}<div class="row"><span>Total</span><span>${fmt(totals[i])} ${unit}</span></div>`, e.clientX, e.clientY);
     });
-    hit.addEventListener('pointerleave', hideTip);
   });
 }
 
@@ -395,8 +433,7 @@ function heatmap(host, days) {
     if (dow === 0 && d.getMonth() !== lastMonth) { lastMonth = d.getMonth(); el('text', { x: left + w * (cell + gap), y: 10 }, ax).textContent = d.toLocaleDateString(undefined, { month: 'short' }); }
     const n = days[key] || 0;
     const r = el('rect', { x: left + w * (cell + gap), y: top + dow * (cell + gap), width: cell, height: cell, rx: 3, fill: shade(n) }, svg);
-    r.addEventListener('pointermove', e => showTip(`<b>${fmtDate(key, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</b><div>${n ? n + ' workout' + (n > 1 ? 's' : '') : 'Rest day'}</div>`, e.clientX, e.clientY));
-    r.addEventListener('pointerleave', hideTip);
+    hover(r, e => showTip(`<b>${fmtDate(key, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</b><div>${n ? n + ' workout' + (n > 1 ? 's' : '') : 'Rest day'}</div>`, e.clientX, e.clientY));
   }
   host.parentElement.scrollLeft = host.parentElement.scrollWidth;
 }
@@ -489,8 +526,7 @@ function drawFigure(host, parts, regionStats, ramp, label) {
     for (const t of mirrored ? ['', mirror] : ['']) {
       const n = el('path', { d, transform: t, class: 'muscle', 'data-region': region, fill: ramp(region), tabindex: -1 }, svg);
       const group = PARENT[region] ?? region;
-      n.addEventListener('pointermove', e => { highlight(region); showTip(regionTip(region, regionStats[region]), e.clientX, e.clientY); });
-      n.addEventListener('pointerleave', () => { highlight(null); hideTip(); });
+      hover(n, e => { highlight(region); showTip(regionTip(region, regionStats[region]), e.clientX, e.clientY); }, () => { highlight(null); hideTip(); });
       n.addEventListener('click', () => { hideTip(); location.hash = groupHref(group); });
     }
   }
