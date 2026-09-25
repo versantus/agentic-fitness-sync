@@ -8,7 +8,9 @@ exercise and muscle.
 
 ![Strength dashboard overview: summary tiles, estimated 1RM chart and recent personal records](docs/screenshots/overview.png)
 
-<sub>Screenshots use generated demo data (see [Try it without an account](#try-it-without-an-account)), not a real person's training.</sub>
+**[▶ Try the live demo](https://agentic-fitness-sync-demo.netlify.app)**. It has the full dashboard with sample data and needs no account.
+
+<sub>Screenshots and the demo use generated demo data (see [Try it without an account](#try-it-without-an-account)), not a real person's training.</sub>
 
 > **Unofficial.** Not affiliated with or endorsed by ABC Trainerize or ABC Fitness. It uses the
 > same private API the Trainerize web app uses, signed in as you, and reads only your own
@@ -194,6 +196,9 @@ TRAINERIZE_HOME=/tmp/tz-demo trainerize serve
 ```
 
 The data is deterministic. This is how the screenshots above were made.
+
+`npm run demo-site` builds the same thing as one static page in `site/`, with the data baked in and sync
+disabled. That's what the [live demo](https://agentic-fitness-sync-demo.netlify.app) is.
 
 ## Development
 

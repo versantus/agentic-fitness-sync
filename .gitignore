@@ -9,3 +9,6 @@ skills/*/.test-bin/
 .DS_Store
 # never commit exported personal data
 exports/
+# generated static demo (scripts/build-demo-site.mjs)
+site/
+.netlify/

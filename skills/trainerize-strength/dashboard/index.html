@@ -150,6 +150,8 @@ a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
 .bodymap.compact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .rm-note { color: var(--text-muted); font-size: 12px; margin-top: 6px; }
 [hidden] { display: none !important; }
+.demo-banner { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 12px; padding: 10px 16px; margin-bottom: 16px; font-size: 14px; }
+.demo-banner a { font-weight: 600; margin-left: 4px; }
 .err { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: none; }
 </style>
 </head>
@@ -169,6 +171,10 @@ a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
     <button id="theme" title="Toggle light/dark">◐ Theme</button>
     <button id="sync" class="primary">Sync now</button>
   </header>
+  <div class="demo-banner" id="demoBanner" hidden>
+    <b>Demo:</b> this page uses generated sample training data, not a real person's.
+    <a href="https://github.com/versantus/agentic-fitness-sync">Get it for your own Trainerize account →</a>
+  </div>
   <div class="err" id="err"></div>
 
   <div class="filters" role="group" aria-label="Time range">
@@ -644,6 +650,7 @@ function renderAll() {
 }
 
 async function load() {
+  if (window.DASHBOARD_DATA) { data = window.DASHBOARD_DATA; renderAll(); return; } // static demo build
   try {
     const r = await fetch('/api/summary'); const j = await r.json();
     if (!r.ok) throw new Error(j.error); data = j; $('#err').style.display = 'none'; renderAll();
@@ -807,7 +814,12 @@ document.querySelectorAll('[data-metric]').forEach(b => b.addEventListener('clic
 }));
 $('#liftChips').addEventListener('click', e => { const b = e.target.closest('[data-lift]'); if (b) { liftId = +b.dataset.lift; renderLift(); } });
 $('#liftSelect').addEventListener('change', e => { liftId = +e.target.value; renderLift(); });
+if (window.DASHBOARD_DEMO) {
+  $('#demoBanner').hidden = false;
+  const b = $('#sync'); b.disabled = true; b.title = 'Sync is disabled in the demo'; b.textContent = 'Sync (demo)';
+}
 $('#sync').addEventListener('click', async () => {
+  if (window.DASHBOARD_DEMO) return;
   const b = $('#sync'); b.disabled = true; b.textContent = 'Syncing…';
   try { const r = await fetch('/api/sync', { method: 'POST', headers: { 'X-Trainerize-Dashboard': '1' } }); const j = await r.json(); if (!r.ok) throw new Error(j.error); await load(); }
   catch (e) { $('#err').textContent = 'Sync failed: ' + e.message; $('#err').style.display = 'block'; }

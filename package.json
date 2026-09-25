@@ -27,6 +27,7 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
     "prepare": "tsc -p tsconfig.json",
+    "demo-site": "tsc -p tsconfig.json && node scripts/build-demo-site.mjs",
     "test": "tsc -p tsconfig.test.json && node --test skills/trainerize-strength/.test-bin/*.test.js"
   },
   "devDependencies": {
