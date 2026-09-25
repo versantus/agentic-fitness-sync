@@ -80,6 +80,14 @@ button:disabled { opacity: .6; cursor: progress; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .chips button { padding: 4px 12px; font-size: 13px; }
 .chart { position: relative; width: 100%; }
+/* Nothing may force the page wider than the screen: form controls size to the longest option by default. */
+select, input, svg, img, table { max-width: 100%; }
+select { min-width: 0; text-overflow: ellipsis; }
+.card-head > * { min-width: 0; }
+.lift-pick { display: flex; gap: 10px; align-items: center; min-width: 0; max-width: 100%; }
+.lift-pick select { flex: 1 1 auto; min-width: 0; }
+.lift-pick .card-link { flex: none; }
+.prs .ex, td, .page-title h2 { overflow-wrap: anywhere; }
 .chart svg { display: block; width: 100%; overflow: visible; }
 .axis text { fill: var(--text-muted); font-size: 11px; }
 .gridline { stroke: var(--grid); stroke-width: 1; }
@@ -181,13 +189,20 @@ a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
   .tile .num { font-size: 26px; }
   .card { padding: 14px; border-radius: 14px; margin-bottom: 12px; }
   .grid2 { gap: 12px; margin-bottom: 12px; }
-  .card-head select { max-width: 100%; }
+  .card-head { flex-direction: column; align-items: stretch; }
+  .lift-pick { width: 100%; }
   .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -14px 10px; padding: 0 14px; }
   .chips button { flex: none; }
   .page-title h2 { font-size: 22px; }
   .prs { max-height: 380px; }
   th, td { padding: 6px 5px; }
   .tip { max-width: calc(100vw - 24px); }
+}
+@media (max-width: 380px) {
+  header h1 { font-size: 18px; }
+  #theme, #sync { padding: 5px 11px; font-size: 13px; }
+  #sync .lbl { display: none; }
+  .tile .num { font-size: 23px; }
 }
 .err { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: none; }
 </style>
@@ -206,7 +221,7 @@ a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
       <div class="results" id="results" role="listbox"></div>
     </div>
     <button id="theme" title="Toggle light/dark" aria-label="Toggle light/dark theme">◐<span class="lbl"> Theme</span></button>
-    <button id="sync" class="primary">Sync now</button>
+    <button id="sync" class="primary" aria-label="Sync now"><span aria-hidden="true">↻</span><span class="lbl"> Sync now</span></button>
   </header>
   <div class="demo-banner" id="demoBanner" hidden>
     <b>Demo:</b> this page uses generated sample training data, not a real person's.
@@ -233,7 +248,7 @@ a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
           <h2 id="liftTitle">Lift progression</h2>
           <p class="hint">Best estimated 1-rep max per session (Epley, sets of 10 reps or fewer).</p>
         </div>
-        <div style="display:flex;gap:10px;align-items:center"><select id="liftSelect" aria-label="Exercise"></select><a class="card-link" id="liftLink" href="#">Details →</a></div>
+        <div class="lift-pick"><select id="liftSelect" aria-label="Exercise"></select><a class="card-link" id="liftLink" href="#">Details →</a></div>
       </div>
       <div class="chips" id="liftChips"></div>
       <div class="stats-row" id="liftStats"></div>
@@ -860,16 +875,18 @@ document.querySelectorAll('[data-metric]').forEach(b => b.addEventListener('clic
 }));
 $('#liftChips').addEventListener('click', e => { const b = e.target.closest('[data-lift]'); if (b) { liftId = +b.dataset.lift; renderLift(); } });
 $('#liftSelect').addEventListener('change', e => { liftId = +e.target.value; renderLift(); });
+/** The label hides on very small screens (icon only), so keep aria-label in step with it. */
+function setSyncLabel(text) { const b = $('#sync'); b.querySelector('.lbl').textContent = ' ' + text; b.setAttribute('aria-label', text); }
 if (window.DASHBOARD_DEMO) {
   $('#demoBanner').hidden = false;
-  const b = $('#sync'); b.disabled = true; b.title = 'Sync is disabled in the demo'; b.textContent = 'Sync (demo)';
+  const b = $('#sync'); b.disabled = true; b.title = 'Sync is disabled in the demo'; setSyncLabel('Demo');
 }
 $('#sync').addEventListener('click', async () => {
   if (window.DASHBOARD_DEMO) return;
-  const b = $('#sync'); b.disabled = true; b.textContent = 'Syncing…';
+  const b = $('#sync'); b.disabled = true; setSyncLabel('Syncing…');
   try { const r = await fetch('/api/sync', { method: 'POST', headers: { 'X-Trainerize-Dashboard': '1' } }); const j = await r.json(); if (!r.ok) throw new Error(j.error); await load(); }
   catch (e) { $('#err').textContent = 'Sync failed: ' + e.message; $('#err').style.display = 'block'; }
-  finally { b.disabled = false; b.textContent = 'Sync now'; }
+  finally { b.disabled = false; setSyncLabel('Sync now'); }
 });
 $('#theme').addEventListener('click', () => {
   const root = document.documentElement;

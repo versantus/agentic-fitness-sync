@@ -45,13 +45,15 @@ const EX = {
   fly:      [406, 'Cable Fly', 'chestInner', 'cable', 25, 0.04, 2.5],
   shrug:    [407, 'DB Shrug', 'traps', 'dumbbell', 70, 0.08, 2],
   obliques: [408, 'Cable Woodchop', 'obliques', 'cable', 25, 0.03, 2.5],
+  // Deliberately long name: real Trainerize libraries have these, and they used to break the mobile layout.
+  hkrow:    [409, 'Half-Kneeling Single-Arm Cable High-to-Low Row (Neutral Grip)', 'middleBack', 'cable', 30, 0.05, 2.5],
 };
 const MAIN = new Set(['squat', 'bench', 'dead', 'ohp']);
 const DAYS = {
   1: ['Lower A', ['squat', 'rdl', 'lunge', 'curl', 'calf', 'plank']],
   2: ['Upper A', ['bench', 'row', 'incline', 'pulldown', 'lateral', 'pushdown']],
   4: ['Lower B', ['dead', 'front', 'thrust', 'legext', 'deadbug']],
-  6: ['Upper B', ['ohp', 'pullup', 'cablerow', 'facepull', 'dbcurl', 'fly', 'shrug', 'obliques']],
+  6: ['Upper B', ['ohp', 'pullup', 'cablerow', 'facepull', 'dbcurl', 'fly', 'shrug', 'obliques', 'hkrow']],
 };
 // 8-week blocks: hypertrophy → strength → peak, each ending in a deload week.
 const BLOCKS = [
