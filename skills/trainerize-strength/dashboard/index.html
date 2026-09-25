@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strength Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #F4F4F4;
+  --surface: #FFFFFF;
+  --text-primary: #20212C;
+  --text-secondary: #55566a;
+  --text-muted: #7c7d8f;
+  --grid: #ececef;
+  --border: #e4e4e8;
+  --accent: #F0146E;
+  --accent-soft: rgba(240, 20, 110, 0.10);
+  --good: #0f8a4f;
+  /* categorical: validated order (see README) */
+  --s1: #F0146E; --s2: #2a78d6; --s3: #eda100; --s4: #A445B2; --s5: #1baf7a; --s-other: #b8b8c2;
+  /* sequential (heatmap) */
+  --q0: #efeff2; --q2: #f46a9f; --q3: #b80d52;
+  --b0: #e6e6eb; --b1: #fbd0e1; --b2: #f67fae; --b3: #F0146E; --b4: #9e0b47; --body: #f1f1f4;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #20212C; --surface: #2a2b38; --text-primary: #ffffff; --text-secondary: #c5c6d3; --text-muted: #9798a8;
+    --grid: #383948; --border: #3b3c4b; --accent-soft: rgba(240, 20, 110, 0.18); --good: #3fcf8a;
+    --s1: #F0146E; --s2: #3987e5; --s3: #c98500; --s4: #b866c4; --s5: #199e70; --s-other: #6b6c7c;
+    --q0: #33343f; --q2: #a3124f; --q3: #ff5a9a;
+    --b0: #3a3b48; --b1: #5a2440; --b2: #9c1350; --b3: #e0136a; --b4: #ff7aad; --body: #30313d;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #20212C; --surface: #2a2b38; --text-primary: #ffffff; --text-secondary: #c5c6d3; --text-muted: #9798a8;
+  --grid: #383948; --border: #3b3c4b; --accent-soft: rgba(240, 20, 110, 0.18); --good: #3fcf8a;
+  --s1: #F0146E; --s2: #3987e5; --s3: #c98500; --s4: #b866c4; --s5: #199e70; --s-other: #6b6c7c;
+  --q0: #33343f; --q2: #a3124f; --q3: #ff5a9a;
+  --b0: #3a3b48; --b1: #5a2440; --b2: #9c1350; --b3: #e0136a; --b4: #ff7aad; --body: #30313d;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text-primary); font: 15px/1.5 'Open Sans', system-ui, sans-serif; }
+h1, h2, h3, .num { font-family: 'Outfit', system-ui, sans-serif; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 20px; }
+header h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; }
+header h1 span { color: var(--accent); }
+.meta { color: var(--text-muted); font-size: 13px; }
+.spacer { flex: 1; }
+button, select { font: inherit; font-size: 14px; color: var(--text-primary); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+button:hover, select:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); font-weight: 600; }
+button:disabled { opacity: .6; cursor: progress; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 16px; }
+.filters .label { color: var(--text-muted); font-size: 13px; margin-right: 4px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.tile, .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; }
+.tile { padding: 16px 18px; }
+.tile .label { color: var(--text-secondary); font-size: 13px; }
+.tile .num { font-size: 32px; font-weight: 600; line-height: 1.15; margin-top: 4px; }
+.tile .sub { color: var(--text-muted); font-size: 12px; }
+.grid2 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+.card { padding: 18px 20px; margin-bottom: 16px; min-width: 0; }
+.grid2 .card { margin-bottom: 0; }
+.card h2 { margin: 0; font-size: 18px; font-weight: 600; }
+.card .hint { color: var(--text-muted); font-size: 13px; margin: 2px 0 12px; }
+.card-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: flex-start; }
+.card-head > div:first-child { flex: 1; min-width: 200px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chips button { padding: 4px 12px; font-size: 13px; }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.axis text { fill: var(--text-muted); font-size: 11px; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--text-secondary); margin: 4px 0 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.tip { position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--text-primary); border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.12); display: none; max-width: 260px; }
+.tip b { font-family: 'Outfit', sans-serif; font-weight: 600; }
+.tip .row { display: flex; gap: 8px; justify-content: space-between; }
+.tip .row i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+.stats-row { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 4px 0 8px; font-size: 13px; color: var(--text-secondary); }
+.stats-row b { color: var(--text-primary); font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 16px; margin-right: 4px; }
+.prs { list-style: none; margin: 0; padding: 0; max-height: 420px; overflow-y: auto; }
+.prs li { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 10px; padding: 10px 0; border-bottom: 1px solid var(--grid); align-items: baseline; }
+.prs li:last-child { border-bottom: 0; }
+.badge { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--text-primary); }
+.prs .ex { font-weight: 600; }
+.prs .val { font-family: 'Outfit', sans-serif; font-weight: 600; text-align: right; }
+.prs .detail { grid-column: 2 / 4; color: var(--text-muted); font-size: 12px; }
+.up { color: var(--good); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+th:first-child, td:first-child { text-align: left; }
+th { color: var(--text-secondary); font-weight: 600; }
+.table-wrap { overflow-x: auto; max-height: 320px; overflow-y: auto; margin-top: 8px; }
+.heat-wrap { overflow-x: auto; padding-bottom: 4px; }
+.heat-legend { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+.heat-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.upcoming { margin: 8px 0 0; padding: 0; list-style: none; font-size: 13px; }
+.upcoming li { padding: 4px 0; color: var(--text-secondary); }
+.upcoming li b { color: var(--text-primary); font-weight: 600; margin-right: 8px; }
+.empty { color: var(--text-muted); padding: 40px 0; text-align: center; }
+.bodymap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(220px, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .bodymap { grid-template-columns: 1fr 1fr; } .bodymap .rank { grid-column: 1 / -1; } }
+.figure { text-align: center; }
+.figure svg { width: 100%; max-width: 220px; height: auto; }
+.figure .cap { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+.muscle { stroke: var(--surface); stroke-width: 2; cursor: default; transition: opacity .15s; }
+.muscle:hover, .muscle.hl { stroke: var(--text-primary); stroke-width: 1.5; }
+.rank table td:first-child i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
+.rank tr { cursor: default; }
+.rank tr:hover td { background: var(--accent-soft); }
+.err { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Strength <span>dashboard</span></h1>
+    <div class="meta" id="meta">Loading…</div>
+    <div class="spacer"></div>
+    <button id="theme" title="Toggle light/dark">◐ Theme</button>
+    <button id="sync" class="primary">Sync now</button>
+  </header>
+  <div class="err" id="err"></div>
+
+  <div class="filters" role="group" aria-label="Time range">
+    <span class="label">Range</span>
+    <button data-range="90">3 months</button>
+    <button data-range="182">6 months</button>
+    <button data-range="365" aria-pressed="true">1 year</button>
+    <button data-range="0">All time</button>
+  </div>
+
+  <section class="tiles" id="tiles"></section>
+
+  <div class="grid2">
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2 id="liftTitle">Lift progression</h2>
+          <p class="hint">Best estimated 1-rep max per session (Epley, sets of 10 reps or fewer).</p>
+        </div>
+        <select id="liftSelect" aria-label="Exercise"></select>
+      </div>
+      <div class="chips" id="liftChips"></div>
+      <div class="stats-row" id="liftStats"></div>
+      <div class="chart" id="liftChart"></div>
+      <details><summary class="meta">Session table</summary><div class="table-wrap" id="liftTable"></div></details>
+    </section>
+    <section class="card">
+      <h2>Personal records</h2>
+      <p class="hint">New best e1RM or heaviest weight for an exercise, in the selected range.</p>
+      <ul class="prs" id="prs"></ul>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="card-head">
+      <div>
+        <h2>Weekly volume by muscle group</h2>
+        <p class="hint" id="volHint">Logged sets per week, by the exercise's main muscle.</p>
+      </div>
+      <div role="group" aria-label="Volume metric" style="display:flex;gap:6px">
+        <button data-metric="sets" aria-pressed="true">Sets</button>
+        <button data-metric="tonnage">Tonnage</button>
+      </div>
+    </div>
+    <div class="legend" id="volLegend"></div>
+    <div class="chart" id="volChart"></div>
+    <details><summary class="meta">Table view</summary><div class="table-wrap" id="volTable"></div></details>
+  </section>
+
+  <section class="card">
+    <h2>Where you've trained</h2>
+    <p class="hint">Sets per muscle group in the selected range, by each exercise's main muscle. Darker = more sets.</p>
+    <div class="bodymap">
+      <div class="figure"><div id="bodyFront"></div><div class="cap">Front</div></div>
+      <div class="figure"><div id="bodyBack"></div><div class="cap">Back</div></div>
+      <div class="rank"><div class="heat-legend" id="bodyLegend" style="margin:0 0 8px"></div><div id="bodyRank"></div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Consistency</h2>
+    <p class="hint">Days with a tracked workout (strength or cardio), last 52 weeks.</p>
+    <div class="stats-row" id="consStats"></div>
+    <div class="heat-wrap"><div id="heat"></div></div>
+    <div class="heat-legend"><i style="background:var(--q0)"></i> Rest <i style="background:var(--q2)"></i> 1 workout <i style="background:var(--q3)"></i> 2+ workouts</div>
+    <h3 style="font-size:15px;margin:16px 0 0;font-weight:600">Coming up</h3>
+    <ul class="upcoming" id="upcoming"></ul>
+  </section>
+</div>
+<div class="tip" id="tip" role="status"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = n => n == null ? '–' : n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? (n / 1e3).toFixed(1).replace(/\.0$/, '') + 'K' : Math.round(n).toLocaleString();
+const fmtDate = (d, opts = { day: 'numeric', month: 'short', year: 'numeric' }) => new Date(d + 'T00:00:00').toLocaleDateString(undefined, opts);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent?.appendChild(e); return e; };
+
+let data = null, rangeDays = 365, metric = 'sets', liftId = null;
+const since = () => rangeDays ? new Date(Date.now() - rangeDays * 864e5).toISOString().slice(0, 10) : '0000';
+
+// ---- tooltip ---------------------------------------------------------
+const tip = $('#tip');
+function showTip(html, x, y) {
+  tip.innerHTML = html; tip.style.display = 'block';
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(window.innerWidth - r.width - 8, x + 14) + 'px';
+  tip.style.top = Math.max(8, y - r.height - 12) + 'px';
+}
+const hideTip = () => { tip.style.display = 'none'; };
+
+function niceTicks(min, max, count = 5) {
+  if (min === max) { min -= 1; max += 1; }
+  const step0 = (max - min) / count, mag = 10 ** Math.floor(Math.log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
+  const out = []; for (let v = lo; v <= hi + step / 2; v += step) out.push(+v.toFixed(6));
+  return out;
+}
+
+// ---- line chart (single series: title names it, no legend) ----------
+function lineChart(host, pts, unit) {
+  host.innerHTML = '';
+  if (pts.length < 2) { host.innerHTML = '<div class="empty">Not enough weighted sessions in this range.</div>'; return; }
+  const W = host.clientWidth, H = 280, m = { t: 16, r: 56, b: 28, l: 44 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': 'Estimated 1RM over time' }, host);
+  const xs = pts.map(p => Date.parse(p.date)), ys = pts.map(p => p.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const ticks = niceTicks(Math.min(...ys) * 0.95, Math.max(...ys) * 1.03, 4);
+  const X = t => m.l + (t - x0) / (x1 - x0 || 1) * (W - m.l - m.r);
+  const Y = v => H - m.b - (v - ticks[0]) / (ticks.at(-1) - ticks[0]) * (H - m.t - m.b);
+  const ax = el('g', { class: 'axis' }, svg);
+  for (const t of ticks) {
+    el('line', { class: 'gridline', x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t) }, ax);
+    el('text', { x: m.l - 8, y: Y(t) + 4, 'text-anchor': 'end' }, ax).textContent = fmt(t);
+  }
+  const months = Math.max(1, Math.round((x1 - x0) / (30 * 864e5)));
+  const every = months > 30 ? 6 : months > 12 ? 3 : months > 5 ? 2 : 1;
+  const d = new Date(x0); d.setDate(1); d.setMonth(d.getMonth() + 1);
+  while (d.getTime() <= x1) {
+    if (d.getMonth() % every === 0) el('text', { x: X(d.getTime()), y: H - 8, 'text-anchor': 'middle' }, ax).textContent =
+      d.getMonth() === 0 || every >= 6 ? d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) : d.toLocaleDateString(undefined, { month: 'short' });
+    d.setMonth(d.getMonth() + 1);
+  }
+  const accent = css('--accent'), surface = css('--surface');
+  const path = pts.map((p, i) => `${i ? 'L' : 'M'}${X(xs[i]).toFixed(1)},${Y(p.y).toFixed(1)}`).join('');
+  el('path', { d: path + `L${X(x1)},${H - m.b}L${X(x0)},${H - m.b}Z`, fill: accent, 'fill-opacity': 0.08 }, svg);
+  el('path', { d: path, fill: 'none', stroke: accent, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }, svg);
+  const last = pts.at(-1), best = pts.reduce((a, b) => b.y > a.y ? b : a);
+  for (const p of new Set([best, last])) el('circle', { cx: X(Date.parse(p.date)), cy: Y(p.y), r: 4.5, fill: accent, stroke: surface, 'stroke-width': 2 }, svg);
+  el('text', { x: X(Date.parse(last.date)) + 8, y: Y(last.y) + 4, fill: css('--text-primary'), 'font-size': 12, 'font-weight': 600 }, svg).textContent = `${fmt(last.y)} ${unit}`;
+  // crosshair + nearest-point tooltip
+  const cross = el('line', { y1: m.t, y2: H - m.b, stroke: css('--text-muted'), 'stroke-width': 1, visibility: 'hidden' }, svg);
+  const dot = el('circle', { r: 5, fill: accent, stroke: surface, 'stroke-width': 2, visibility: 'hidden' }, svg);
+  const hit = el('rect', { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: 'transparent' }, svg);
+  hit.addEventListener('pointermove', e => {
+    const bx = svg.getBoundingClientRect(), px = (e.clientX - bx.left) * (W / bx.width);
+    let i = 0, bestD = Infinity; xs.forEach((t, j) => { const dd = Math.abs(X(t) - px); if (dd < bestD) { bestD = dd; i = j; } });
+    const p = pts[i], cx = X(xs[i]), cy = Y(p.y);
+    for (const n of [cross, dot]) n.setAttribute('visibility', 'visible');
+    cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); dot.setAttribute('cx', cx); dot.setAttribute('cy', cy);
+    showTip(`<b>${fmtDate(p.date)}</b><div class="row"><span>e1RM</span><span>${p.y} ${unit}</span></div><div class="row"><span>Best set</span><span>${esc(p.bestSet)}</span></div><div class="row"><span>Sets · volume</span><span>${p.sets} · ${fmt(p.volume)} kg</span></div>`, e.clientX, e.clientY);
+  });
+  hit.addEventListener('pointerleave', () => { hideTip(); cross.setAttribute('visibility', 'hidden'); dot.setAttribute('visibility', 'hidden'); });
+}
+
+// ---- stacked columns -------------------------------------------------
+function stackedColumns(host, rows, keys, colors, unit) {
+  host.innerHTML = '';
+  if (!rows.length) { host.innerHTML = '<div class="empty">No workouts in this range.</div>'; return; }
+  const W = host.clientWidth, H = 260, m = { t: 12, r: 8, b: 28, l: 44 };
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': 'Weekly volume by muscle group' }, host);
+  const totals = rows.map(r => keys.reduce((a, k) => a + (r.v[k] || 0), 0));
+  const ticks = niceTicks(0, Math.max(...totals), 4);
+  const Y = v => H - m.b - v / ticks.at(-1) * (H - m.t - m.b);
+  const band = (W - m.l - m.r) / rows.length, bw = Math.max(2, Math.min(24, band - 2));
+  const ax = el('g', { class: 'axis' }, svg);
+  for (const t of ticks) {
+    el('line', { class: 'gridline', x1: m.l, x2: W - m.r, y1: Y(t), y2: Y(t) }, ax);
+    el('text', { x: m.l - 8, y: Y(t) + 4, 'text-anchor': 'end' }, ax).textContent = fmt(t);
+  }
+  const labelEvery = Math.ceil(rows.length / Math.floor((W - m.l) / 70));
+  rows.forEach((r, i) => {
+    const cx = m.l + band * i + band / 2;
+    if (i % labelEvery === 0) el('text', { x: cx, y: H - 8, 'text-anchor': 'middle' }, ax).textContent = fmtDate(r.week, { day: 'numeric', month: 'short' });
+    let acc = 0; const segs = keys.filter(k => r.v[k] > 0);
+    segs.forEach((k, j) => {
+      const y0 = Y(acc), y1 = Y(acc + r.v[k]); acc += r.v[k];
+      const gap = j ? 2 : 0, top = y1, bot = y0 - gap, h = Math.max(0, bot - top), x = cx - bw / 2;
+      if (h <= 0) return;
+      const rad = j === segs.length - 1 ? Math.min(4, h, bw / 2) : 0;
+      el('path', { d: `M${x},${bot}V${top + rad}Q${x},${top} ${x + rad},${top}H${x + bw - rad}Q${x + bw},${top} ${x + bw},${top + rad}V${bot}Z`, fill: colors[k] }, svg);
+    });
+    const hit = el('rect', { x: m.l + band * i, y: m.t, width: band, height: H - m.t - m.b, fill: 'transparent' }, svg);
+    hit.addEventListener('pointermove', e => {
+      const lines = keys.filter(k => r.v[k]).reverse().map(k => `<div class="row"><span><i style="background:${colors[k]}"></i>${esc(k)}</span><span>${fmt(r.v[k])}</span></div>`).join('');
+      showTip(`<b>Week of ${fmtDate(r.week)}</b>${lines}<div class="row"><span>Total</span><span>${fmt(totals[i])} ${unit}</span></div>`, e.clientX, e.clientY);
+    });
+    hit.addEventListener('pointerleave', hideTip);
+  });
+}
+
+// ---- heatmap ---------------------------------------------------------
+function heatmap(host, days) {
+  host.innerHTML = '';
+  const weeks = 53, top = 16, left = 30, gap = 3;
+  const cell = Math.max(10, Math.min(18, Math.floor((host.parentElement.clientWidth - left) / weeks) - gap));
+  const W = left + weeks * (cell + gap), H = top + 7 * (cell + gap);
+  const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: 'img', 'aria-label': 'Workout calendar heatmap' }, host);
+  svg.style.width = W + 'px';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const start = new Date(today); start.setDate(start.getDate() - ((today.getDay() + 6) % 7) - (weeks - 1) * 7);
+  const ax = el('g', { class: 'axis' }, svg);
+  ['Mon', '', 'Wed', '', 'Fri', '', ''].forEach((l, i) => l && (el('text', { x: 0, y: top + i * (cell + gap) + cell - 2 }, ax).textContent = l));
+  const shade = n => css(n >= 2 ? '--q3' : n === 1 ? '--q2' : '--q0');
+  let lastMonth = -1;
+  for (let w = 0; w < weeks; w++) for (let dow = 0; dow < 7; dow++) {
+    const d = new Date(start); d.setDate(start.getDate() + w * 7 + dow);
+    if (d > today) continue;
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (dow === 0 && d.getMonth() !== lastMonth) { lastMonth = d.getMonth(); el('text', { x: left + w * (cell + gap), y: 10 }, ax).textContent = d.toLocaleDateString(undefined, { month: 'short' }); }
+    const n = days[key] || 0;
+    const r = el('rect', { x: left + w * (cell + gap), y: top + dow * (cell + gap), width: cell, height: cell, rx: 3, fill: shade(n) }, svg);
+    r.addEventListener('pointermove', e => showTip(`<b>${fmtDate(key, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</b><div>${n ? n + ' workout' + (n > 1 ? 's' : '') : 'Rest day'}</div>`, e.clientX, e.clientY));
+    r.addEventListener('pointerleave', hideTip);
+  }
+  host.parentElement.scrollLeft = host.parentElement.scrollWidth;
+}
+
+
+// ---- body map --------------------------------------------------------
+// Trainerize tag names → map regions. Anything unmapped is still listed in the table.
+const MUSCLE_ALIASES = {
+  chest: ['chest', 'pectorals', 'pecs'], shoulders: ['shoulders', 'delts', 'deltoids'],
+  biceps: ['biceps'], triceps: ['triceps'], forearms: ['forearms', 'forearm'],
+  abs: ['abs', 'abdominals', 'core'], obliques: ['obliques'],
+  quads: ['quads', 'quadriceps', 'hip flexors'], adductors: ['adductors', 'inner thigh'],
+  hamstrings: ['hamstrings'], glutes: ['glutes', 'abductors', 'hips'], calves: ['calves', 'calf', 'shins', 'tibialis'],
+  lats: ['lats', 'latissimus'], traps: ['traps', 'trapezius', 'neck'],
+  upperBack: ['middle back', 'upper back', 'rhomboids', 'back'], lowerBack: ['lower back', 'erectors'],
+};
+const REGION_LABEL = { upperBack: 'upper back', lowerBack: 'lower back' };
+const regionOf = tag => { const t = tag.toLowerCase(); return Object.keys(MUSCLE_ALIASES).find(k => MUSCLE_ALIASES[k].includes(t)) ?? null; };
+
+// Simple, symmetric figure on a 200×420 grid. [region, shape, attrs] — mirrored where marked.
+const E = (cx, cy, rx, ry, rot = 0) => ({ t: 'ellipse', a: { cx, cy, rx, ry, transform: rot ? `rotate(${rot} ${cx} ${cy})` : '' } });
+const P = d => ({ t: 'path', a: { d } });
+const FRONT = [
+  ['traps', P('M86 64 L100 72 L114 64 L128 80 L100 84 L72 80 Z')],
+  ['shoulders', E(60, 96, 16, 18, -20), true],
+  ['chest', P('M100 88 C 100 88 72 84 66 104 C 64 122 80 130 100 126 Z'), true],
+  ['biceps', E(49, 140, 10, 24, 8), true],
+  ['forearms', E(40, 196, 9, 27, 6), true],
+  ['abs', P('M88 132 H112 Q114 132 114 136 V198 Q100 212 86 198 V136 Q86 132 88 132 Z')],
+  ['obliques', E(76, 168, 8, 28, -6), true],
+  ['quads', E(83, 268, 15, 46, 4), true],
+  ['adductors', E(96, 244, 5, 22, -4), true],
+  ['calves', E(83, 354, 10, 32, 2), true],
+];
+const BACK = [
+  ['traps', P('M100 62 L128 82 L112 96 L100 128 L88 96 L72 82 Z')],
+  ['shoulders', E(60, 96, 16, 18, 20), true],
+  ['triceps', E(49, 140, 10, 24, 8), true],
+  ['forearms', E(40, 196, 9, 27, 6), true],
+  ['lats', P('M88 104 C 70 108 66 130 72 160 C 78 176 88 184 96 188 L96 132 Z'), true],
+  ['upperBack', P('M92 102 H108 L106 132 H94 Z')],
+  ['lowerBack', P('M90 170 H110 Q112 186 110 200 H90 Q88 186 90 170 Z')],
+  ['glutes', E(86, 226, 15, 17), true],
+  ['hamstrings', E(84, 282, 14, 36, 3), true],
+  ['calves', E(84, 350, 12, 32, 2), true],
+];
+// Non-muscle silhouette underneath.
+const SILHOUETTE = 'M100 12 a22 22 0 1 1 -0.1 0 Z M90 56 h20 v12 h-20 Z M64 78 Q100 66 136 78 L150 90 L162 150 L168 224 L156 226 L144 160 L132 118 L130 206 L136 240 L130 330 L126 400 L106 404 L104 300 L100 250 L96 300 L94 404 L74 400 L70 330 L64 240 L70 206 L68 118 L56 160 L44 226 L32 224 L38 150 L50 90 Z';
+
+function drawFigure(host, parts, stats, ramp) {
+  host.innerHTML = '';
+  const svg = el('svg', { viewBox: '0 0 200 420', role: 'img', 'aria-label': host.id === 'bodyFront' ? 'Body map, front' : 'Body map, back' }, host);
+  el('path', { d: SILHOUETTE, fill: css('--body') }, svg);
+  for (const [region, shape, mirror] of parts) {
+    for (const flip of mirror ? [false, true] : [false]) {
+      const n = el(shape.t, { ...shape.a, class: 'muscle', 'data-region': region, fill: ramp(stats[region]?.sets ?? 0) }, svg);
+      if (flip) n.setAttribute('transform', `translate(200 0) scale(-1 1) ${shape.a.transform ?? ''}`);
+      n.addEventListener('pointermove', e => { highlight(region); showTip(regionTip(region, stats[region]), e.clientX, e.clientY); });
+      n.addEventListener('pointerleave', () => { highlight(null); hideTip(); });
+    }
+  }
+}
+
+function highlight(region) {
+  document.querySelectorAll('.muscle').forEach(m => m.classList.toggle('hl', m.dataset.region === region));
+  document.querySelectorAll('#bodyRank tr[data-region]').forEach(r => r.style.background = r.dataset.region === region ? 'var(--accent-soft)' : '');
+}
+
+function regionTip(region, st) {
+  const name = REGION_LABEL[region] ?? region;
+  if (!st) return `<b>${esc(name)}</b><div>Not trained in this range</div>`;
+  const top = st.exercises.slice(0, 3).map(([n, c]) => `<div class="row"><span>${esc(n)}</span><span>${c} sets</span></div>`).join('');
+  return `<b>${esc(name)}</b><div class="row"><span>Sets</span><span>${fmt(st.sets)}</span></div><div class="row"><span>Tonnage</span><span>${fmt(st.tonnage)} kg</span></div>${top}`;
+}
+
+function renderBody() {
+  const s = since(), stats = {}, unmapped = {};
+  for (const e of data.exercises) {
+    const sess = e.sessions.filter(x => x.date >= s);
+    if (!sess.length) continue;
+    const sets = sess.reduce((a, x) => a + x.sets, 0), tonnage = sess.reduce((a, x) => a + x.volume, 0);
+    const region = regionOf(e.muscle);
+    const bucket = region ? stats : unmapped, key = region ?? e.muscle;
+    const st = (bucket[key] ??= { sets: 0, tonnage: 0, exercises: [] });
+    st.sets += sets; st.tonnage += tonnage; st.exercises.push([e.name, sets]);
+  }
+  for (const st of [...Object.values(stats), ...Object.values(unmapped)]) st.exercises.sort((a, b) => b[1] - a[1]);
+  const max = Math.max(1, ...Object.values(stats).map(x => x.sets));
+  const steps = ['--b1', '--b2', '--b3', '--b4'].map(css);
+  // Square-root scale so a couple of high-volume muscles don't flatten the rest into one step.
+  const ramp = n => n <= 0 ? css('--b0') : steps[Math.min(3, Math.floor(Math.sqrt(n / max) * 4 - 1e-9))];
+  drawFigure($('#bodyFront'), FRONT, stats, ramp);
+  drawFigure($('#bodyBack'), BACK, stats, ramp);
+  const q = i => Math.round(max * (i / 4) ** 2);
+  $('#bodyLegend').innerHTML = `<i style="background:var(--b0)"></i> 0 ` + steps.map((c, i) => `<i style="background:${c}"></i> ${i === 0 ? '1' : q(i) + 1}–${q(i + 1)}`).join(' ') + ' sets';
+  const rows = [...Object.entries(stats).map(([k, v]) => [k, v, true]), ...Object.entries(unmapped).map(([k, v]) => [k, v, false])]
+    .sort((a, b) => b[1].sets - a[1].sets);
+  const untrained = Object.keys(MUSCLE_ALIASES).filter(k => !stats[k]).map(k => REGION_LABEL[k] ?? k);
+  $('#bodyRank').innerHTML = rows.length ? `<table><thead><tr><th>Muscle</th><th>Sets</th><th>Tonnage (kg)</th></tr></thead><tbody>${
+    rows.map(([k, v, mapped]) => `<tr data-region="${mapped ? k : ''}"><td><i style="background:${mapped ? ramp(v.sets) : 'var(--s-other)'}"></i>${esc(REGION_LABEL[k] ?? k)}${mapped ? '' : ' <span class="meta">(not on map)</span>'}</td><td>${fmt(v.sets)}</td><td>${fmt(v.tonnage)}</td></tr>`).join('')
+  }</tbody></table>${untrained.length ? `<p class="meta" style="margin:8px 0 0">Not trained in this range: ${untrained.map(esc).join(', ')}</p>` : ''}` : '<div class="empty">No workouts in this range.</div>';
+  document.querySelectorAll('#bodyRank tr[data-region]').forEach(r => {
+    if (!r.dataset.region) return;
+    r.addEventListener('pointerenter', () => highlight(r.dataset.region));
+    r.addEventListener('pointerleave', () => highlight(null));
+  });
+}
+
+// ---- sections --------------------------------------------------------
+function renderTiles() {
+  const t = data.totals, c = data.consistency, s = since();
+  const inRange = data.weekly.filter(w => w.week >= s);
+  const workouts = inRange.reduce((a, w) => a + w.workouts, 0);
+  const tonnage = inRange.reduce((a, w) => a + w.tonnage, 0);
+  const prs = data.prs.filter(p => p.date >= s).length;
+  const weeks = Math.max(1, inRange.length);
+  const tiles = [
+    ['Workouts', fmt(workouts), `${(workouts / weeks).toFixed(1)} per active week`],
+    ['Current streak', `${c.currentStreakWeeks} wk`, `Longest ${c.longestStreakWeeks} weeks in a row`],
+    ['Personal records', fmt(prs), `${t.prsLast30} in the last 30 days`],
+    ['Volume lifted', `${fmt(tonnage)} kg`, `${fmt(t.tonnageKg)} kg all time`],
+    ['Adherence', c.last12Weeks.adherence == null ? '–' : c.last12Weeks.adherence + '%', `${c.last12Weeks.completed} done · ${c.last12Weeks.missed} missed (12 wk)`],
+  ];
+  $('#tiles').innerHTML = tiles.map(([l, v, sub]) => `<div class="tile"><div class="label">${l}</div><div class="num">${v}</div><div class="sub">${sub}</div></div>`).join('');
+}
+
+function weightedExercises() { return data.exercises.filter(e => e.bestE1rm); }
+
+function renderLiftControls() {
+  const ex = weightedExercises();
+  if (!liftId && ex.length) liftId = ex[0].id;
+  $('#liftSelect').innerHTML = [...ex].sort((a, b) => a.name.localeCompare(b.name))
+    .map(e => `<option value="${e.id}" ${e.id === liftId ? 'selected' : ''}>${esc(e.name)} (${e.sessions.length})</option>`).join('');
+  $('#liftChips').innerHTML = ex.slice(0, 6).map(e => `<button data-lift="${e.id}" aria-pressed="${e.id === liftId}">${esc(e.name)}</button>`).join('');
+}
+
+function renderLift() {
+  const e = data.exercises.find(x => x.id === liftId);
+  if (!e) { $('#liftChart').innerHTML = '<div class="empty">No weighted exercises logged yet.</div>'; return; }
+  const s = since(), sess = e.sessions.filter(x => x.date >= s && x.e1rm);
+  $('#liftTitle').textContent = e.name;
+  const first = sess[0], last = sess.at(-1), bestInRange = sess.reduce((a, b) => (b.e1rm > (a?.e1rm ?? 0) ? b : a), null);
+  const delta = first && last ? last.e1rm - first.e1rm : 0;
+  $('#liftStats').innerHTML = [
+    `<span><b>${fmt(e.bestE1rm)} kg</b>all-time best e1RM</span>`,
+    `<span><b>${fmt(e.bestWeight)} kg</b>heaviest set</span>`,
+    bestInRange ? `<span><b>${bestInRange.e1rm} kg</b>best in range</span>` : '',
+    sess.length > 1 ? `<span><b class="${delta >= 0 ? 'up' : ''}">${delta >= 0 ? '▲ +' : '▼ '}${delta.toFixed(1)} kg</b>change in range</span>` : '',
+    `<span><b>${sess.length}</b>sessions</span>`,
+  ].join('');
+  lineChart($('#liftChart'), sess.map(x => ({ ...x, y: x.e1rm })), 'kg');
+  $('#liftTable').innerHTML = `<table><thead><tr><th>Date</th><th>Best set</th><th>e1RM (kg)</th><th>Sets</th><th>Volume (kg)</th></tr></thead><tbody>${
+    [...sess].reverse().map(x => `<tr><td>${fmtDate(x.date)}</td><td>${esc(x.bestSet)}</td><td>${x.e1rm}</td><td>${x.sets}</td><td>${fmt(x.volume)}</td></tr>`).join('')}</tbody></table>`;
+  document.querySelectorAll('#liftChips button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.lift === liftId)));
+  $('#liftSelect').value = liftId;
+}
+
+function renderPRs() {
+  const s = since(), list = data.prs.filter(p => p.date >= s).slice(0, 60);
+  $('#prs').innerHTML = list.length ? list.map(p => `<li><span class="badge">${p.kind}</span><span class="ex">${esc(p.exercise)}</span><span class="val">${p.value} kg</span>
+    <span class="detail">${fmtDate(p.date)} · ${esc(p.set)} · <span class="up">+${(p.value - p.previous).toFixed(1)} kg</span></span></li>`).join('')
+    : '<li class="empty" style="display:block">No PRs in this range yet — keep going.</li>';
+}
+
+function renderVolume() {
+  const s = since(), weeks = data.weekly.filter(w => w.week >= s);
+  // Top five muscles (by sets across the range) keep fixed colour slots; the rest fold into Other.
+  const totals = {};
+  for (const w of weeks) for (const [k, v] of Object.entries(w.muscles)) totals[k] = (totals[k] || 0) + v.sets;
+  const allKeys = Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
+  const top = allKeys.filter(k => k !== 'other').slice(0, 5);
+  const keys = [...top, ...(allKeys.length > top.length ? ['Other'] : [])];
+  const colors = {}; top.forEach((k, i) => colors[k] = css(`--s${i + 1}`)); colors.Other = css('--s-other');
+  const rows = weeks.map(w => {
+    const v = {}; for (const [k, val] of Object.entries(w.muscles)) { const key = top.includes(k) ? k : 'Other'; v[key] = (v[key] || 0) + val[metric]; }
+    return { week: w.week, v };
+  });
+  const unit = metric === 'sets' ? 'sets' : 'kg';
+  $('#volHint').textContent = metric === 'sets' ? 'Logged sets per week, by the exercise\'s main muscle.' : 'Weight × reps per week (kg), by the exercise\'s main muscle. Bodyweight work counts as zero.';
+  $('#volLegend').innerHTML = keys.map(k => `<span><i style="background:${colors[k]}"></i>${esc(k)}</span>`).join('');
+  stackedColumns($('#volChart'), rows, keys, colors, unit);
+  $('#volTable').innerHTML = `<table><thead><tr><th>Week of</th>${keys.map(k => `<th>${esc(k)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${
+    [...rows].reverse().map(r => `<tr><td>${fmtDate(r.week)}</td>${keys.map(k => `<td>${fmt(r.v[k] || 0)}</td>`).join('')}<td>${fmt(keys.reduce((a, k) => a + (r.v[k] || 0), 0))}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function renderConsistency() {
+  const c = data.consistency;
+  const last52 = Object.entries(c.trackedDays).filter(([d]) => d >= new Date(Date.now() - 364 * 864e5).toISOString().slice(0, 10));
+  $('#consStats').innerHTML = [
+    `<span><b>${last52.length}</b>active days (52 wk)</span>`,
+    `<span><b>${c.currentStreakWeeks}</b>week streak</span>`,
+    `<span><b>${c.longestStreakWeeks}</b>longest streak</span>`,
+  ].join('');
+  heatmap($('#heat'), c.trackedDays);
+  $('#upcoming').innerHTML = c.upcoming.length ? c.upcoming.map(u => `<li><b>${fmtDate(u.date, { weekday: 'short', day: 'numeric', month: 'short' })}</b>${esc(u.title)}</li>`).join('') : '<li>Nothing scheduled.</li>';
+}
+
+function renderAll() {
+  if (!data) return;
+  $('#meta').textContent = data.range.first
+    ? `${fmt(data.totals.workouts)} workouts since ${fmtDate(data.range.first)} · synced ${data.lastSync ? fmtDate(data.lastSync) : 'never'}`
+    : 'No workouts cached yet — press Sync now.';
+  renderTiles(); renderLiftControls(); renderLift(); renderPRs(); renderVolume(); renderBody(); renderConsistency();
+}
+
+async function load() {
+  try {
+    const r = await fetch('/api/summary'); const j = await r.json();
+    if (!r.ok) throw new Error(j.error); data = j; $('#err').style.display = 'none'; renderAll();
+  } catch (e) { $('#err').textContent = 'Could not load data: ' + e.message; $('#err').style.display = 'block'; }
+}
+
+// ---- events ----------------------------------------------------------
+document.querySelectorAll('[data-range]').forEach(b => b.addEventListener('click', () => {
+  rangeDays = +b.dataset.range;
+  document.querySelectorAll('[data-range]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderTiles(); renderLift(); renderPRs(); renderVolume(); renderBody();
+}));
+document.querySelectorAll('[data-metric]').forEach(b => b.addEventListener('click', () => {
+  metric = b.dataset.metric;
+  document.querySelectorAll('[data-metric]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  renderVolume();
+}));
+$('#liftChips').addEventListener('click', e => { const b = e.target.closest('[data-lift]'); if (b) { liftId = +b.dataset.lift; renderLift(); } });
+$('#liftSelect').addEventListener('change', e => { liftId = +e.target.value; renderLift(); });
+$('#sync').addEventListener('click', async () => {
+  const b = $('#sync'); b.disabled = true; b.textContent = 'Syncing…';
+  try { const r = await fetch('/api/sync', { method: 'POST', headers: { 'X-Trainerize-Dashboard': '1' } }); const j = await r.json(); if (!r.ok) throw new Error(j.error); await load(); }
+  catch (e) { $('#err').textContent = 'Sync failed: ' + e.message; $('#err').style.display = 'block'; }
+  finally { b.disabled = false; b.textContent = 'Sync now'; }
+});
+$('#theme').addEventListener('click', () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  try { localStorage.setItem('theme', root.dataset.theme); } catch {}
+  renderAll();
+});
+try { const t = localStorage.getItem('theme'); if (t) document.documentElement.dataset.theme = t; } catch {}
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (data) { renderLift(); renderVolume(); renderConsistency(); } }, 150); });
+load();
+</script>
+</body>
+</html>

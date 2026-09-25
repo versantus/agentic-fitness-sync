@@ -1,0 +1,12 @@
+{
+  "name": "agentic-fitness-sync",
+  "owner": { "name": "Versantus", "url": "https://github.com/versantus" },
+  "description": "Personal fitness data tools for Claude Code.",
+  "plugins": [
+    {
+      "name": "agentic-fitness-sync",
+      "source": ".",
+      "description": "Sync and analyse your own ABC Trainerize strength training history (unofficial)."
+    }
+  ]
+}

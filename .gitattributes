@@ -1,0 +1,3 @@
+# Compiled CLI shipped inside the skill so it works without a build step.
+skills/trainerize-strength/bin/** linguist-generated=true
+* text=auto eol=lf

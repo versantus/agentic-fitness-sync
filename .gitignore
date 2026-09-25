@@ -1,0 +1,11 @@
+node_modules/
+# local settings — ship .env.example instead
+.env
+.env.*
+!.env.example
+# test build output (the CLI in skills/*/bin IS committed so the skill works without a build)
+skills/*/.test-bin/
+*.log
+.DS_Store
+# never commit exported personal data
+exports/

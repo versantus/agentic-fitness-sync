@@ -1,0 +1,35 @@
+{
+  "name": "agentic-fitness-sync",
+  "version": "0.1.0",
+  "description": "Unofficial CLI, local dashboard and Claude skill for exporting and analysing your own ABC Trainerize workout history.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/versantus/agentic-fitness-sync.git"
+  },
+  "bin": {
+    "trainerize": "skills/trainerize-strength/bin/cli.js"
+  },
+  "files": [
+    "skills/trainerize-strength/SKILL.md",
+    "skills/trainerize-strength/bin",
+    "skills/trainerize-strength/dashboard",
+    ".env.example",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "prepare": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && node --test skills/trainerize-strength/.test-bin/*.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  }
+}

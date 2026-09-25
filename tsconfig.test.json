@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "outDir": "skills/trainerize-strength/.test-bin" },
+  "include": ["src"],
+  "exclude": []
+}

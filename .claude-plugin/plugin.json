@@ -1,0 +1,11 @@
+{
+  "name": "agentic-fitness-sync",
+  "displayName": "Agentic Fitness Sync",
+  "version": "0.1.0",
+  "description": "Sync your own ABC Trainerize workout history locally and ask Claude about lift progression, PRs, muscle-group volume and consistency — plus a local strength dashboard. Unofficial.",
+  "author": { "name": "Versantus", "url": "https://github.com/versantus" },
+  "homepage": "https://github.com/versantus/agentic-fitness-sync",
+  "repository": "https://github.com/versantus/agentic-fitness-sync",
+  "license": "MIT",
+  "keywords": ["trainerize", "fitness", "strength-training", "dashboard", "personal-data"]
+}
