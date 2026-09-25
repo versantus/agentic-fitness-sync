@@ -31,6 +31,7 @@ export function requireConfig() {
 // On macOS the password lives in the login Keychain. Elsewhere we never persist
 // the password: supply TRAINERIZE_PASSWORD, or re-run `trainerize login`.
 const SERVICE = 'agentic-fitness-sync';
+const LEGACY_SERVICES = ['trainerize-export']; // pre-0.1 name; still read so existing logins keep working
 const isMac = process.platform === 'darwin';
 /** Quote a value for `security -i`'s command parser. */
 const q = (s) => `"${s.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
@@ -48,20 +49,23 @@ export function loadPassword(email) {
         return process.env.TRAINERIZE_PASSWORD;
     if (!isMac)
         return null;
-    try {
-        return execFileSync('security', ['find-generic-password', '-s', SERVICE, '-a', email, '-w'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    for (const service of [SERVICE, ...LEGACY_SERVICES]) {
+        try {
+            return execFileSync('security', ['find-generic-password', '-s', service, '-a', email, '-w'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+        }
+        catch { /* try the next name */ }
     }
-    catch {
-        return null;
-    }
+    return null;
 }
 export function deletePassword(email) {
     if (!isMac)
         return;
-    try {
-        execFileSync('security', ['delete-generic-password', '-s', SERVICE, '-a', email], { stdio: 'ignore' });
+    for (const service of [SERVICE, ...LEGACY_SERVICES]) {
+        try {
+            execFileSync('security', ['delete-generic-password', '-s', service, '-a', email], { stdio: 'ignore' });
+        }
+        catch { /* not present */ }
     }
-    catch { /* not present */ }
 }
 export function loadToken() {
     if (!existsSync(TOKEN_FILE))

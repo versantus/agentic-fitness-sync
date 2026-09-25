@@ -308,7 +308,7 @@ function stackedColumns(host, rows, keys, colors, unit) {
     });
     const hit = el('rect', { x: m.l + band * i, y: m.t, width: band, height: H - m.t - m.b, fill: 'transparent' }, svg);
     hit.addEventListener('pointermove', e => {
-      const lines = keys.filter(k => r.v[k]).reverse().map(k => `<div class="row"><span><i style="background:${colors[k]}"></i>${esc(k)}</span><span>${fmt(r.v[k])}</span></div>`).join('');
+      const lines = keys.filter(k => r.v[k]).reverse().map(k => `<div class="row"><span><i style="background:${colors[k]}"></i>${esc(labelOf(k))}</span><span>${fmt(r.v[k])}</span></div>`).join('');
       showTip(`<b>Week of ${fmtDate(r.week)}</b>${lines}<div class="row"><span>Total</span><span>${fmt(totals[i])} ${unit}</span></div>`, e.clientX, e.clientY);
     });
     hit.addEventListener('pointerleave', hideTip);
@@ -344,18 +344,23 @@ function heatmap(host, days) {
 
 
 // ---- body map --------------------------------------------------------
-// Trainerize tag names → map regions. Anything unmapped is still listed in the table.
-const MUSCLE_ALIASES = {
-  chest: ['chest', 'pectorals', 'pecs'], shoulders: ['shoulders', 'delts', 'deltoids'],
-  biceps: ['biceps'], triceps: ['triceps'], forearms: ['forearms', 'forearm'],
-  abs: ['abs', 'abdominals', 'core'], obliques: ['obliques'],
-  quads: ['quads', 'quadriceps', 'hip flexors'], adductors: ['adductors', 'inner thigh'],
-  hamstrings: ['hamstrings'], glutes: ['glutes', 'abductors', 'hips'], calves: ['calves', 'calf', 'shins', 'tibialis'],
-  lats: ['lats', 'latissimus'], traps: ['traps', 'trapezius', 'neck'],
-  upperBack: ['middle back', 'upper back', 'rhomboids', 'back'], lowerBack: ['lower back', 'erectors'],
-};
+// Trainerize "mainMuscle" tags are camelCase and often sub-muscles (shoulderFront, chestUpper,
+// middleBack, bicep…). Split camelCase, then match each map region by prefix.
+const MUSCLE_RULES = [
+  ['chest', /^(chest|pec)/], ['shoulders', /^(shoulder|delt)/], ['biceps', /^bicep/], ['triceps', /^tricep/],
+  ['forearms', /^(forearm|wrist|grip)/], ['obliques', /^oblique/], ['abs', /^(abs|abdominal|core|rectus)/],
+  ['quads', /^(quad|hip flexor)/], ['adductors', /^(adductor|inner thigh|groin)/], ['hamstrings', /^hamstring/],
+  ['glutes', /^(glute|abductor|hip)/], ['calves', /^(calf|calves|shin|tibialis|soleus)/],
+  ['lats', /^lat/], ['traps', /^(trap|neck)/], ['lowerBack', /^(lower back|erector|spinal)/],
+  ['upperBack', /^(middle back|mid back|upper back|rhomboid|back)/],
+];
+const MUSCLE_ALIASES = Object.fromEntries(MUSCLE_RULES); // region list (keys) for "not trained" text
 const REGION_LABEL = { upperBack: 'upper back', lowerBack: 'lower back' };
-const regionOf = tag => { const t = tag.toLowerCase(); return Object.keys(MUSCLE_ALIASES).find(k => MUSCLE_ALIASES[k].includes(t)) ?? null; };
+const humanize = tag => String(tag).replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase().trim();
+const regionOf = tag => { const t = humanize(tag); return MUSCLE_RULES.find(([, re]) => re.test(t))?.[0] ?? null; };
+/** Display group for a tag: its map region if it has one, otherwise the readable tag. */
+const groupOf = tag => regionOf(tag) ?? humanize(tag);
+const labelOf = key => REGION_LABEL[key] ?? key;
 
 // Simple, symmetric figure on a 200×420 grid. [region, shape, attrs] — mirrored where marked.
 const E = (cx, cy, rx, ry, rot = 0) => ({ t: 'ellipse', a: { cx, cy, rx, ry, transform: rot ? `rotate(${rot} ${cx} ${cy})` : '' } });
@@ -420,7 +425,7 @@ function renderBody() {
     if (!sess.length) continue;
     const sets = sess.reduce((a, x) => a + x.sets, 0), tonnage = sess.reduce((a, x) => a + x.volume, 0);
     const region = regionOf(e.muscle);
-    const bucket = region ? stats : unmapped, key = region ?? e.muscle;
+    const bucket = region ? stats : unmapped, key = region ?? humanize(e.muscle);
     const st = (bucket[key] ??= { sets: 0, tonnage: 0, exercises: [] });
     st.sets += sets; st.tonnage += tonnage; st.exercises.push([e.name, sets]);
   }
@@ -506,20 +511,22 @@ function renderVolume() {
   const s = since(), weeks = data.weekly.filter(w => w.week >= s);
   // Top five muscles (by sets across the range) keep fixed colour slots; the rest fold into Other.
   const totals = {};
-  for (const w of weeks) for (const [k, v] of Object.entries(w.muscles)) totals[k] = (totals[k] || 0) + v.sets;
+  // Group sub-muscle tags into the same regions as the body map.
+  const grouped = weeks.map(w => { const g = {}; for (const [k, v] of Object.entries(w.muscles)) { const key = groupOf(k); g[key] ??= { sets: 0, tonnage: 0 }; g[key].sets += v.sets; g[key].tonnage += v.tonnage; } return { week: w.week, muscles: g }; });
+  for (const w of grouped) for (const [k, v] of Object.entries(w.muscles)) totals[k] = (totals[k] || 0) + v.sets;
   const allKeys = Object.keys(totals).sort((a, b) => totals[b] - totals[a]);
   const top = allKeys.filter(k => k !== 'other').slice(0, 5);
   const keys = [...top, ...(allKeys.length > top.length ? ['Other'] : [])];
   const colors = {}; top.forEach((k, i) => colors[k] = css(`--s${i + 1}`)); colors.Other = css('--s-other');
-  const rows = weeks.map(w => {
+  const rows = grouped.map(w => {
     const v = {}; for (const [k, val] of Object.entries(w.muscles)) { const key = top.includes(k) ? k : 'Other'; v[key] = (v[key] || 0) + val[metric]; }
     return { week: w.week, v };
   });
   const unit = metric === 'sets' ? 'sets' : 'kg';
   $('#volHint').textContent = metric === 'sets' ? 'Logged sets per week, by the exercise\'s main muscle.' : 'Weight × reps per week (kg), by the exercise\'s main muscle. Bodyweight work counts as zero.';
-  $('#volLegend').innerHTML = keys.map(k => `<span><i style="background:${colors[k]}"></i>${esc(k)}</span>`).join('');
+  $('#volLegend').innerHTML = keys.map(k => `<span><i style="background:${colors[k]}"></i>${esc(labelOf(k))}</span>`).join('');
   stackedColumns($('#volChart'), rows, keys, colors, unit);
-  $('#volTable').innerHTML = `<table><thead><tr><th>Week of</th>${keys.map(k => `<th>${esc(k)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${
+  $('#volTable').innerHTML = `<table><thead><tr><th>Week of</th>${keys.map(k => `<th>${esc(labelOf(k))}</th>`).join('')}<th>Total</th></tr></thead><tbody>${
     [...rows].reverse().map(r => `<tr><td>${fmtDate(r.week)}</td>${keys.map(k => `<td>${fmt(r.v[k] || 0)}</td>`).join('')}<td>${fmt(keys.reduce((a, k) => a + (r.v[k] || 0), 0))}</td></tr>`).join('')}</tbody></table>`;
 }
 
