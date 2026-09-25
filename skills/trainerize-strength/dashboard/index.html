@@ -152,6 +152,11 @@ a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
 [hidden] { display: none !important; }
 .demo-banner { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 12px; padding: 10px 16px; margin-bottom: 16px; font-size: 14px; }
 .demo-banner a { font-weight: 600; margin-left: 4px; }
+.site-footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; font-size: 13px; color: var(--text-muted); }
+.site-footer a { color: var(--text-secondary); font-weight: 600; text-decoration: none; }
+.site-footer a:hover { color: var(--accent); }
+.site-footer .heart { color: var(--accent); }
+.site-footer .sep { margin: 0 8px; }
 .err { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; display: none; }
 </style>
 </head>
@@ -246,6 +251,11 @@ a.pill:hover { color: var(--text-primary); outline: 1px solid var(--accent); }
     <ul class="upcoming" id="upcoming"></ul>
   </section>
   </main>
+  <footer class="site-footer">
+    Made with <span class="heart" role="img" aria-label="love">♥</span> by <a href="https://www.versantus.co.uk" target="_blank" rel="noopener">Versantus</a>
+    <span class="sep" aria-hidden="true">·</span>
+    <a href="https://github.com/versantus/agentic-fitness-sync" target="_blank" rel="noopener">agentic-fitness-sync</a>
+  </footer>
 </div>
 <div class="tip" id="tip" role="status"></div>
 
